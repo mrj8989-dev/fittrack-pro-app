@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class UsersService {
@@ -32,7 +34,7 @@ export class UsersService {
   async findClientsByTrainer(trainerId: string) {
     return this.prisma.user.findMany({
       where: { trainerId },
-      select: { id: true, name: true, email: true, subscriptionPlan: true, createdAt: true },
+      select: { id: true, name: true, email: true, subscriptionPlan: true, createdAt: true, profilePhoto: true },
       orderBy: { name: 'asc' },
     });
   }
@@ -57,7 +59,23 @@ export class UsersService {
     if (!trainerId) return null;
     return this.prisma.user.findUnique({
       where: { id: trainerId },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, profilePhoto: true },
+    });
+  }
+
+  async updateProfilePhoto(userId: string, filename?: string) {
+    if (!filename) throw new BadRequestException('No se ha recibido ningún archivo');
+
+    const current = await this.prisma.user.findUnique({ where: { id: userId }, select: { profilePhoto: true } });
+    if (current?.profilePhoto) {
+      const oldPath = path.join(process.cwd(), 'public', current.profilePhoto);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { profilePhoto: `/uploads/${filename}` },
+      select: { id: true, name: true, email: true, role: true, profilePhoto: true },
     });
   }
 

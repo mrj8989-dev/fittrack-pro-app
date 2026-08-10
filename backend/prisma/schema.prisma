@@ -27,6 +27,7 @@ model User {
   role             Role             @default(CLIENT)
   subscriptionPlan SubscriptionPlan @default(FREE)
   revisionInterval Int              @default(14)
+  profilePhoto     String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 

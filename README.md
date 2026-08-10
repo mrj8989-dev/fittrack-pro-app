@@ -78,6 +78,14 @@ cd backend && node_modules/.bin/prisma studio
 - [x] Recordatorio de próxima revisión con cuenta atrás
 - [x] Seeder con 24 ejercicios reales con vídeos de referencia
 - [x] Rutina Upper/Lower de hipertrofia real (4 días)
+- [x] Subida real de fotos en revisiones corporales (servidas vía `/uploads`)
+- [x] Sistema de roles con `@Roles` + `RolesGuard`
+- [x] Gestión de clientes por entrenador (asignar/desasignar por email)
+- [x] Entrenador puede crear y editar planes/días/ejercicios de sus clientes
+- [x] Reordenar ejercicios de un día (drag & drop) con endpoint dedicado
+- [x] Entrenador puede consultar el historial de sesiones y récords reales de sus clientes
+- [x] Chat entrenador ↔ cliente (mensajes con sondeo periódico, no leídos)
+- [x] Foto de perfil (subida propia, disponible para los 3 roles)
 
 **Frontend**
 - [x] Landing page con hero, features y preview del dashboard
@@ -102,13 +110,19 @@ cd backend && node_modules/.bin/prisma studio
 - [x] Lightbox para ver fotos de revisiones
 - [x] Página de ajustes con selector de color accent
 - [x] Toggle modo oscuro/claro desde ajustes
+- [x] Panel de entrenador: gestión de clientes, planes con drag & drop, historial/récords y chat
+- [x] Página de catálogo de ejercicios (filtros, vídeo, gestión para trainer/admin)
+- [x] Chat con avatares, agrupado de mensajes consecutivos y separadores de fecha (estilo WhatsApp)
+- [x] Foto de perfil en Ajustes, Sidebar, lista de clientes y chat
+- [x] Badge de mensajes sin leer en el Sidebar
 
 ## 🔜 Próximamente
 
-- [ ] Subida de fotos en revisiones corporales
-- [ ] Panel de entrenador con drag & drop
-- [ ] Gestión de clientes por entrenador
-- [ ] Chat entrenador ↔ cliente
+- [ ] Panel de ADMIN: gestión de clientes y sus suscripciones (FREE vs PRO — PRO incluye entrenador asignado y revisiones corporales)
+- [ ] Panel de ADMIN: gestión de entrenadores y qué cliente lleva cada uno
+- [ ] Página **"Mis planes"** (`/planes`) — el cliente ve el plan de entrenamiento que tiene asignado (solo rol CLIENT)
+- [ ] Página de **récords** rediseñada centrada en el progreso máximo del propio cliente (solo CLIENT — no tiene sentido para TRAINER/ADMIN)
+- [ ] Revisar navegación por rol: cada rol debe ver solo lo suyo. El panel de entrenador debe limitarse a gestionar clientes y ejercicios — sin acceso a Entrenar, Progreso, Revisiones, Récords ni Mis planes (eso es personal de cada CLIENT)
 - [ ] CI/CD con GitHub Actions
 - [ ] Deploy en producción
 
@@ -172,12 +186,13 @@ fittrack-pro/
 │   │   ├── workouts/          # Workouts con ejercicios
 │   │   ├── workout-sessions/  # Sesiones, series y récords
 │   │   ├── body-revisions/    # Revisiones corporales con fotos
+│   │   ├── messages/          # Chat entrenador-cliente
 │   │   └── prisma/            # Servicio de base de datos
 │   ├── prisma/
 │   │   ├── schema.prisma      # Esquema de base de datos
 │   │   ├── seed.ts            # Seeder con datos reales
 │   │   └── migrations/        # Historial de migraciones
-│   └── public/uploads/        # Fotos de revisiones corporales
+│   └── public/uploads/        # Fotos de revisiones corporales y avatares de perfil
 ├── docker-compose.yml
 └── README.md
 

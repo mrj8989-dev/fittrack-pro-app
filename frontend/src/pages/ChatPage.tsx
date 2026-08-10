@@ -28,7 +28,7 @@ export default function ChatPage() {
           </div>
         </div>
       ) : (
-        <ChatThread otherUserId={trainer.id} otherUserName={trainer.name} />
+        <ChatThread otherUserId={trainer.id} otherUserName={trainer.name} otherUserPhoto={trainer.profilePhoto} />
       )}
     </div>
   )

@@ -50,7 +50,7 @@ export class AuthService {
     return this.generateToken(user);
   }
 
-  private generateToken(user: { id: string; email: string; name: string; role: string }) {
+  private generateToken(user: { id: string; email: string; name: string; role: string; profilePhoto?: string | null }) {
     const payload = { sub: user.id, email: user.email };
     return {
       access_token: this.jwtService.sign(payload),
@@ -59,6 +59,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        profilePhoto: user.profilePhoto ?? null,
       },
     };
   }

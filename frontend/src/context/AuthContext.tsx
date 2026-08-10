@@ -6,6 +6,7 @@ interface User {
   email: string
   name: string
   role: string
+  profilePhoto?: string | null
 }
 
 interface AuthContextType {
@@ -13,6 +14,7 @@ interface AuthContextType {
   token: string | null
   login: (email: string, password: string) => Promise<void>
   logout: () => void
+  updateUser: (patch: Partial<User>) => void
   isLoading: boolean
 }
 
@@ -51,8 +53,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = '/login'
   }
 
+  const updateUser = (patch: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev
+      const next = { ...prev, ...patch }
+      localStorage.setItem('ft-user', JSON.stringify(next))
+      return next
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

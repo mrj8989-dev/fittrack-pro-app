@@ -8,6 +8,7 @@ import {
 import { useExercises } from '../hooks/useExercises'
 import { useClientSessions, useClientRecords } from '../hooks/useTrainerSessions'
 import ChatThread from '../components/ChatThread'
+import Avatar from '../components/Avatar'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
@@ -429,9 +430,12 @@ export default function TrainerPage() {
                     color: selectedClientId === client.id ? '#fff' : 'var(--text-primary)',
                   }}
                 >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</div>
-                    <div style={{ fontSize: '11px', opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.email}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                    <Avatar name={client.name} photoUrl={client.profilePhoto} size={28} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</div>
+                      <div style={{ fontSize: '11px', opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.email}</div>
+                    </div>
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); removeClient.mutate(client.id); if (selectedClientId === client.id) setSelectedClientId(null) }}
@@ -522,7 +526,7 @@ export default function TrainerPage() {
               ) : activeTab === 'historial' ? (
                 <ClientHistoryPanel clientId={selectedClientId} />
               ) : (
-                <ChatThread otherUserId={selectedClientId} otherUserName={selectedClient?.name} />
+                <ChatThread otherUserId={selectedClientId} otherUserName={selectedClient?.name} otherUserPhoto={selectedClient?.profilePhoto} />
               )}
             </>
           )}

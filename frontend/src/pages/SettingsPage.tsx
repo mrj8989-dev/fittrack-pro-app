@@ -1,6 +1,9 @@
+import { useRef } from 'react'
 import { useTheme, accentColors } from '../context/ThemeContext'
 import type { AccentColor } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
+import { useUploadProfilePhoto } from '../hooks/useProfilePhoto'
+import Avatar from '../components/Avatar'
 
 const colorOptions: { id: AccentColor; label: string; emoji: string }[] = [
   { id: 'green', label: 'Verde', emoji: '🌿' },
@@ -29,7 +32,18 @@ function SettingSection({ title, children }: { title: string; children: React.Re
 
 export default function SettingsPage() {
   const { mode, accent, toggleMode, setAccent } = useTheme()
-  const { user, logout } = useAuth()
+  const { user, logout, updateUser } = useAuth()
+  const uploadPhoto = useUploadProfilePhoto()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    uploadPhoto.mutate(file, {
+      onSuccess: updated => updateUser({ profilePhoto: updated.profilePhoto }),
+    })
+    e.target.value = ''
+  }
 
   return (
     <div style={{ maxWidth: '600px', margin: '0 auto' }}>
@@ -46,15 +60,29 @@ export default function SettingsPage() {
       {/* PERFIL */}
       <SettingSection title="Perfil">
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '48px', height: '48px',
-            borderRadius: '50%',
-            background: 'var(--accent-dark)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '16px', color: '#fff', fontWeight: 500,
-            flexShrink: 0,
-          }}>
-            {user?.name?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            style={{ position: 'relative', cursor: 'pointer' }}
+            title="Cambiar foto de perfil"
+          >
+            <Avatar name={user?.name} photoUrl={user?.profilePhoto} size={48} />
+            <div style={{
+              position: 'absolute', bottom: 0, right: 0,
+              width: '18px', height: '18px',
+              borderRadius: '50%',
+              background: 'var(--accent-primary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid var(--bg-secondary)',
+            }}>
+              <i className="ti ti-camera" style={{ fontSize: '10px', color: '#fff' }} aria-hidden="true" />
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              style={{ display: 'none' }}
+            />
           </div>
           <div>
             <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)' }}>
@@ -77,6 +105,12 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        {uploadPhoto.isPending && (
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '10px' }}>Subiendo foto...</div>
+        )}
+        {uploadPhoto.isError && (
+          <div style={{ fontSize: '12px', color: '#E24B4A', marginTop: '10px' }}>No se ha podido subir la foto</div>
+        )}
       </SettingSection>
 
       {/* APARIENCIA */}

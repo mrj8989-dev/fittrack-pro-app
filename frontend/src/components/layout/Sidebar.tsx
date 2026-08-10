@@ -2,6 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useUnreadCount } from '../../hooks/useMessages'
+import Avatar from '../Avatar'
 
 interface NavItem {
   path: string
@@ -34,13 +35,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const { data: unreadCount = 0 } = useUnreadCount()
   const badgePath = user?.role ? CHAT_BADGE_PATH[user.role] : undefined
-
-  const initials = user?.name
-    ?.split(' ')
-    .map(n => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'JH'
 
   return (
     <>
@@ -171,16 +165,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           borderTop: '0.5px solid var(--border)',
           paddingTop: '12px',
         }}>
-          <div style={{
-            width: '30px', height: '30px',
-            borderRadius: '50%',
-            background: 'var(--accent-dark)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '11px', color: '#fff', fontWeight: 500,
-            flexShrink: 0,
-          }}>
-            {initials}
-          </div>
+          <Avatar name={user?.name} photoUrl={user?.profilePhoto} size={30} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.name}
