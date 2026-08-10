@@ -53,6 +53,14 @@ export class UsersService {
     });
   }
 
+  async findMyTrainer(trainerId: string | null) {
+    if (!trainerId) return null;
+    return this.prisma.user.findUnique({
+      where: { id: trainerId },
+      select: { id: true, name: true, email: true },
+    });
+  }
+
   async unassignClient(clientId: string, trainerId: string) {
     const client = await this.prisma.user.findUnique({ where: { id: clientId } });
     if (!client || client.trainerId !== trainerId) {

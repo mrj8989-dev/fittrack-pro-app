@@ -39,4 +39,11 @@ export class UsersController {
   ) {
     return this.usersService.unassignClient(clientId, user.id);
   }
+
+  @Get('my-trainer')
+  @Roles(Role.CLIENT)
+  @ApiOperation({ summary: 'Obtener el entrenador asignado al cliente autenticado (o null)' })
+  findMyTrainer(@CurrentUser() user: any) {
+    return this.usersService.findMyTrainer(user.trainerId);
+  }
 }

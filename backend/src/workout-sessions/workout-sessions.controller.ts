@@ -26,25 +26,35 @@ export class WorkoutSessionsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener historial de sesiones' })
-  findAll(@CurrentUser() user: any) {
-    return this.workoutSessionsService.findAll(user.id);
+  @ApiOperation({ summary: 'Obtener historial de sesiones (propio, o de un cliente si eres su entrenador)' })
+  @ApiQuery({ name: 'clientId', required: false })
+  findAll(
+    @CurrentUser() user: any,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.workoutSessionsService.findAll(user, clientId);
   }
 
   @Get('records')
   @ApiOperation({ summary: 'Obtener récords personales por ejercicio' })
-  getPersonalRecords(@CurrentUser() user: any) {
-    return this.workoutSessionsService.getPersonalRecords(user.id);
+  @ApiQuery({ name: 'clientId', required: false })
+  getPersonalRecords(
+    @CurrentUser() user: any,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.workoutSessionsService.getPersonalRecords(user, clientId);
   }
 
   @Get('progress')
   @ApiOperation({ summary: 'Obtener progreso de un ejercicio a lo largo del tiempo' })
   @ApiQuery({ name: 'exerciseId', required: true })
+  @ApiQuery({ name: 'clientId', required: false })
   getProgress(
     @CurrentUser() user: any,
     @Query('exerciseId') exerciseId: string,
+    @Query('clientId') clientId?: string,
   ) {
-    return this.workoutSessionsService.getProgress(user.id, exerciseId);
+    return this.workoutSessionsService.getProgress(user, exerciseId, clientId);
   }
 
   @Get(':id')

@@ -2,10 +2,29 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { CreateSessionSetDto } from './dto/create-session-set.dto';
+import { Role } from '@prisma/client';
+
+type AuthUser = { id: string; role: Role };
 
 @Injectable()
 export class WorkoutSessionsService {
   constructor(private prisma: PrismaService) {}
+
+  /** Resuelve el userId cuyas sesiones se consultan: el propio caller, o (si es su entrenador) un cliente. */
+  private async resolveTargetUserId(clientId: string | undefined, user: AuthUser) {
+    if (!clientId || clientId === user.id) return user.id;
+
+    if (user.role !== Role.TRAINER) {
+      throw new ForbiddenException('Solo un entrenador puede consultar el historial de otro usuario');
+    }
+
+    const client = await this.prisma.user.findUnique({ where: { id: clientId } });
+    if (!client || client.trainerId !== user.id) {
+      throw new ForbiddenException('Ese usuario no está en tu cartera de clientes');
+    }
+
+    return clientId;
+  }
 
   async create(dto: CreateSessionDto, userId: string) {
     return this.prisma.workoutSession.create({
@@ -20,7 +39,8 @@ export class WorkoutSessionsService {
     });
   }
 
-  async findAll(userId: string) {
+  async findAll(user: AuthUser, clientId?: string) {
+    const userId = await this.resolveTargetUserId(clientId, user);
     return this.prisma.workoutSession.findMany({
       where: { userId },
       include: {
@@ -71,7 +91,8 @@ export class WorkoutSessionsService {
     });
   }
 
-  async getProgress(userId: string, exerciseId: string) {
+  async getProgress(user: AuthUser, exerciseId: string, clientId?: string) {
+    const userId = await this.resolveTargetUserId(clientId, user);
     const sets = await this.prisma.sessionSet.findMany({
       where: {
         exerciseId,
@@ -96,7 +117,8 @@ export class WorkoutSessionsService {
     }));
   }
 
-  async getPersonalRecords(userId: string) {
+  async getPersonalRecords(user: AuthUser, clientId?: string) {
+    const userId = await this.resolveTargetUserId(clientId, user);
     const sets = await this.prisma.sessionSet.findMany({
       where: {
         workoutSession: { userId },

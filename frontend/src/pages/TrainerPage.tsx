@@ -6,6 +6,8 @@ import {
   useAddExercise, useRemoveExercise, useReorderExercises,
 } from '../hooks/useTrainerPlans'
 import { useExercises } from '../hooks/useExercises'
+import { useClientSessions, useClientRecords } from '../hooks/useTrainerSessions'
+import ChatThread from '../components/ChatThread'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
@@ -243,9 +245,92 @@ function PlanCard({ plan }: { plan: any }) {
   )
 }
 
+function ClientHistoryPanel({ clientId }: { clientId: string }) {
+  const { data: sessions = [], isLoading: loadingSessions } = useClientSessions(clientId)
+  const { data: records = [], isLoading: loadingRecords } = useClientRecords(clientId)
+  const { data: exercises = [] } = useExercises()
+
+  const exerciseName = (id: string) => exercises.find((e: any) => e.id === id)?.name || 'Ejercicio'
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={cardStyle}>
+        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>
+          Récords personales
+        </div>
+        {loadingRecords ? (
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Cargando...</div>
+        ) : records.length === 0 ? (
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Sin récords todavía</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px' }}>
+            {records.map((r: any) => (
+              <div key={r.exerciseId} style={{ background: 'var(--bg-primary)', border: '0.5px solid var(--border)', borderRadius: '8px', padding: '10px 12px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '4px' }}>{exerciseName(r.exerciseId)}</div>
+                <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--accent-primary)' }}>{r.maxWeight} kg x {r.reps}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={cardStyle}>
+        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>
+          Historial de sesiones
+        </div>
+        {loadingSessions ? (
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Cargando...</div>
+        ) : sessions.length === 0 ? (
+          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Este cliente todavía no ha entrenado ninguna sesión</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {sessions.map((session: any) => {
+              const setsByExercise: Record<string, any[]> = {}
+              session.sets.forEach((set: any) => {
+                if (!setsByExercise[set.exerciseId]) setsByExercise[set.exerciseId] = []
+                setsByExercise[set.exerciseId].push(set)
+              })
+
+              return (
+                <div key={session.id} style={{ background: 'var(--bg-primary)', border: '0.5px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{session.workout?.name}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                      {new Date(session.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      {session.duration ? ` · ${session.duration} min` : ''}
+                      {' · '}
+                      <span style={{ color: session.completed ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}>
+                        {session.completed ? 'Completada' : 'En curso'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {Object.entries(setsByExercise).map(([exerciseId, sets]) => (
+                      <div key={exerciseId} style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        <span style={{ color: 'var(--text-primary)' }}>{exerciseName(exerciseId)}: </span>
+                        {sets.map((s, i) => (
+                          <span key={s.id}>
+                            {i > 0 ? ', ' : ''}{s.weight ?? '-'}kg x {s.reps ?? '-'}{s.completed ? '' : ' (sin completar)'}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function TrainerPage() {
   const { user } = useAuth()
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'plan' | 'historial' | 'chat'>('plan')
   const [clientEmail, setClientEmail] = useState('')
   const [planName, setPlanName] = useState('')
   const [showPlanForm, setShowPlanForm] = useState(false)
@@ -372,40 +457,72 @@ export default function TrainerPage() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
                 <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  Planes de {selectedClient?.name}
+                  {selectedClient?.name}
                 </div>
-                <button onClick={() => setShowPlanForm(s => !s)} style={primaryButtonStyle}>
-                  + Nuevo plan
-                </button>
-              </div>
 
-              {showPlanForm && (
-                <form onSubmit={handleCreatePlan} style={{ ...cardStyle, display: 'flex', gap: '8px', marginBottom: '1rem' }}>
-                  <input
-                    value={planName}
-                    onChange={e => setPlanName(e.target.value)}
-                    placeholder="Nombre del plan (ej. Fuerza 12 semanas)"
-                    required
-                    style={{ ...inputStyle, flex: 1 }}
-                  />
-                  <button type="submit" style={primaryButtonStyle}>Crear</button>
-                </form>
-              )}
-
-              {loadingPlans ? (
-                <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>Cargando planes...</div>
-              ) : plans.length === 0 ? (
-                <div style={{ ...cardStyle, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
-                  Este cliente todavía no tiene ningún plan
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {plans.map((plan: any) => (
-                    <PlanCard key={plan.id} plan={plan} />
+                <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '3px' }}>
+                  {(['plan', 'historial', 'chat'] as const).map(tab => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        background: activeTab === tab ? 'var(--accent-primary)' : 'transparent',
+                        color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
+                      }}
+                    >
+                      {tab === 'plan' ? 'Plan de entrenamiento' : tab === 'historial' ? 'Historial y récords' : 'Chat'}
+                    </button>
                   ))}
                 </div>
+              </div>
+
+              {activeTab === 'plan' ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                    <button onClick={() => setShowPlanForm(s => !s)} style={primaryButtonStyle}>
+                      + Nuevo plan
+                    </button>
+                  </div>
+
+                  {showPlanForm && (
+                    <form onSubmit={handleCreatePlan} style={{ ...cardStyle, display: 'flex', gap: '8px', marginBottom: '1rem' }}>
+                      <input
+                        value={planName}
+                        onChange={e => setPlanName(e.target.value)}
+                        placeholder="Nombre del plan (ej. Fuerza 12 semanas)"
+                        required
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <button type="submit" style={primaryButtonStyle}>Crear</button>
+                    </form>
+                  )}
+
+                  {loadingPlans ? (
+                    <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>Cargando planes...</div>
+                  ) : plans.length === 0 ? (
+                    <div style={{ ...cardStyle, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
+                      Este cliente todavía no tiene ningún plan
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {plans.map((plan: any) => (
+                        <PlanCard key={plan.id} plan={plan} />
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : activeTab === 'historial' ? (
+                <ClientHistoryPanel clientId={selectedClientId} />
+              ) : (
+                <ChatThread otherUserId={selectedClientId} otherUserName={selectedClient?.name} />
               )}
             </>
           )}

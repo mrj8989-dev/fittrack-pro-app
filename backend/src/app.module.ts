@@ -10,6 +10,7 @@ import { WorkoutPlansModule } from './workout-plans/workout-plans.module';
 import { WorkoutsModule } from './workouts/workouts.module';
 import { WorkoutSessionsModule } from './workout-sessions/workout-sessions.module';
 import { BodyRevisionsModule } from './body-revisions/body-revisions.module';
+import { MessagesModule } from './messages/messages.module';
 
 
 @Module({
@@ -26,7 +27,8 @@ import { BodyRevisionsModule } from './body-revisions/body-revisions.module';
     WorkoutPlansModule,
     WorkoutsModule,
     WorkoutSessionsModule,
-    BodyRevisionsModule
+    BodyRevisionsModule,
+    MessagesModule
   ],
 })
 export class AppModule {}

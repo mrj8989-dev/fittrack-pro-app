@@ -7,6 +7,9 @@ import { ExercisesService } from './exercises.service';
 import { CreateExerciseDto } from './dto/create-exercise.dto';
 import { UpdateExerciseDto } from './dto/update-exercise.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
 @ApiTags('exercises')
 @ApiBearerAuth()
@@ -16,7 +19,9 @@ export class ExercisesController {
   constructor(private exercisesService: ExercisesService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Crear ejercicio' })
+  @UseGuards(RolesGuard)
+  @Roles(Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Crear ejercicio (entrenador o admin)' })
   create(@Body() dto: CreateExerciseDto) {
     return this.exercisesService.create(dto);
   }
@@ -39,13 +44,17 @@ export class ExercisesController {
   }
 
   @Put(':id')
-  @ApiOperation({ summary: 'Actualizar ejercicio' })
+  @UseGuards(RolesGuard)
+  @Roles(Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Actualizar ejercicio (entrenador o admin)' })
   update(@Param('id') id: string, @Body() dto: UpdateExerciseDto) {
     return this.exercisesService.update(id, dto);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Eliminar ejercicio' })
+  @UseGuards(RolesGuard)
+  @Roles(Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Eliminar ejercicio (entrenador o admin)' })
   remove(@Param('id') id: string) {
     return this.exercisesService.remove(id);
   }

@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useUnreadCount } from '../../hooks/useMessages'
 
 interface NavItem {
   path: string
@@ -19,6 +20,8 @@ const navItems: NavItem[] = [
 ]
 
 const trainerNavItem: NavItem = { path: '/entrenador', label: 'Entrenador', icon: 'ti-users' }
+const chatNavItem: NavItem = { path: '/chat', label: 'Chat', icon: 'ti-message-circle' }
+const CHAT_BADGE_PATH: Record<string, string> = { TRAINER: '/entrenador', CLIENT: '/chat' }
 
 interface SidebarProps {
   isOpen: boolean
@@ -29,6 +32,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
   const { mode, toggleMode } = useTheme()
   const location = useLocation()
+  const { data: unreadCount = 0 } = useUnreadCount()
+  const badgePath = user?.role ? CHAT_BADGE_PATH[user.role] : undefined
 
   const initials = user?.name
     ?.split(' ')
@@ -73,7 +78,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </span>
         </div>
 
-        {(user?.role === 'TRAINER' ? [...navItems, trainerNavItem] : navItems).map(item => (
+        {(
+          user?.role === 'TRAINER' ? [...navItems, trainerNavItem]
+          : user?.role === 'CLIENT' ? [...navItems, chatNavItem]
+          : navItems
+        ).map(item => (
           <NavLink
             key={item.path}
             to={item.path}
@@ -95,6 +104,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <i className={`ti ${item.icon}`} style={{ fontSize: '17px' }} aria-hidden="true" />
             {item.label}
+            {item.path === badgePath && unreadCount > 0 && (
+              <span style={{
+                marginLeft: 'auto',
+                minWidth: '16px', height: '16px', padding: '0 4px',
+                borderRadius: '999px',
+                background: '#E24B4A',
+                color: '#fff',
+                fontSize: '10px',
+                fontWeight: 600,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </NavLink>
         ))}
 

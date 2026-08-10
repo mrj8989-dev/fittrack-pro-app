@@ -37,6 +37,9 @@ model User {
   workoutPlans     WorkoutPlan[]
   workoutSessions  WorkoutSession[]
   bodyRevisions    BodyRevision[]
+
+  sentMessages     Message[]        @relation("SentMessages")
+  receivedMessages Message[]        @relation("ReceivedMessages")
 }
 
 model Exercise {
@@ -130,4 +133,15 @@ model BodyRevision {
   photoBack       String?
   photoSide       String?
   createdAt       DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }
