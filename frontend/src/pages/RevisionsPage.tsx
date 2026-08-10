@@ -58,9 +58,18 @@ function InputField({ label, name, register, placeholder, error }: any) {
   )
 }
 
+const PHOTO_FIELDS = [
+  { key: 'photoFront', label: 'Frontal' },
+  { key: 'photoBack', label: 'Espalda' },
+  { key: 'photoSide', label: 'Lateral' },
+] as const
+
+type PhotoKey = typeof PHOTO_FIELDS[number]['key']
+
 export default function RevisionsPage() {
   const [showForm, setShowForm] = useState(false)
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
+  const [photos, setPhotos] = useState<Partial<Record<PhotoKey, File>>>({})
   const queryClient = useQueryClient()
 
   const { data: revisions = [], isLoading } = useBodyRevisions()
@@ -79,6 +88,10 @@ export default function RevisionsPage() {
           formData.append(key, String(value))
         }
       })
+      PHOTO_FIELDS.forEach(({ key }) => {
+        const file = photos[key]
+        if (file) formData.append(key, file)
+      })
       return api.post('/body-revisions', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       }).then(r => r.data)
@@ -88,6 +101,7 @@ export default function RevisionsPage() {
       queryClient.invalidateQueries({ queryKey: ['weight-progress'] })
       queryClient.invalidateQueries({ queryKey: ['next-revision'] })
       setShowForm(false)
+      setPhotos({})
       reset()
     },
   })
@@ -219,6 +233,70 @@ export default function RevisionsPage() {
                 }}
               />
             </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                Fotos (opcional)
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+                {PHOTO_FIELDS.map(({ key, label }) => {
+                  const file = photos[key]
+                  return (
+                    <div key={key}>
+                      <label
+                        htmlFor={key}
+                        style={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                          gap: '4px',
+                          height: '90px',
+                          background: 'var(--bg-primary)',
+                          border: `0.5px dashed var(--border)`,
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                          position: 'relative',
+                        }}
+                      >
+                        {file ? (
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={label}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <>
+                            <i className="ti ti-camera" style={{ fontSize: '20px', color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{label}</span>
+                          </>
+                        )}
+                      </label>
+                      <input
+                        id={key}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const selected = e.target.files?.[0]
+                          setPhotos(prev => ({ ...prev, [key]: selected }))
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                      {file && (
+                        <button
+                          type="button"
+                          onClick={() => setPhotos(prev => ({ ...prev, [key]: undefined }))}
+                          style={{
+                            marginTop: '4px', width: '100%',
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            fontSize: '11px', color: 'var(--text-tertiary)', padding: '2px',
+                          }}
+                        >
+                          Quitar {label.toLowerCase()}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 type="submit"
@@ -235,7 +313,7 @@ export default function RevisionsPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowForm(false); reset() }}
+                onClick={() => { setShowForm(false); reset(); setPhotos({}) }}
                 style={{
                   padding: '10px 20px',
                   background: 'transparent',

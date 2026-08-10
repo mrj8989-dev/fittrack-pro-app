@@ -3,3 +3,7 @@ node_modules
 .env
 
 /generated/prisma
+
+# Fotos de revisiones corporales subidas por usuarios
+public/uploads/*
+!public/uploads/.gitkeep

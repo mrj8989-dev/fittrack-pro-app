@@ -18,6 +18,8 @@ const navItems: NavItem[] = [
   { path: '/ejercicios', label: 'Ejercicios',      icon: 'ti-crown' },
 ]
 
+const trainerNavItem: NavItem = { path: '/entrenador', label: 'Entrenador', icon: 'ti-users' }
+
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
@@ -71,7 +73,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </span>
         </div>
 
-        {navItems.map(item => (
+        {(user?.role === 'TRAINER' ? [...navItems, trainerNavItem] : navItems).map(item => (
           <NavLink
             key={item.path}
             to={item.path}

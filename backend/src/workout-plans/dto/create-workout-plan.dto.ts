@@ -1,4 +1,4 @@
-import { IsString, IsOptional, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsUUID, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateWorkoutPlanDto {
@@ -11,4 +11,9 @@ export class CreateWorkoutPlanDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional({ description: 'Solo para entrenadores: id del cliente para el que se crea el plan', example: 'uuid-del-cliente' })
+  @IsOptional()
+  @IsUUID()
+  targetUserId?: string;
 }

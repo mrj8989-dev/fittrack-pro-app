@@ -1,8 +1,8 @@
 import {
   Controller, Get, Post, Put, Delete,
-  Body, Param, UseGuards
+  Body, Param, Query, UseGuards
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { WorkoutPlansService } from './workout-plans.service';
 import { CreateWorkoutPlanDto } from './dto/create-workout-plan.dto';
 import { UpdateWorkoutPlanDto } from './dto/update-workout-plan.dto';
@@ -22,13 +22,17 @@ export class WorkoutPlansController {
     @Body() dto: CreateWorkoutPlanDto,
     @CurrentUser() user: any,
   ) {
-    return this.workoutPlansService.create(dto, user.id);
+    return this.workoutPlansService.create(dto, user);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener mis planes de entrenamiento' })
-  findAll(@CurrentUser() user: any) {
-    return this.workoutPlansService.findAll(user.id);
+  @ApiOperation({ summary: 'Obtener planes de entrenamiento (propios, o de un cliente si eres su entrenador)' })
+  @ApiQuery({ name: 'clientId', required: false })
+  findAll(
+    @CurrentUser() user: any,
+    @Query('clientId') clientId?: string,
+  ) {
+    return this.workoutPlansService.findAll(user, clientId);
   }
 
   @Get(':id')
@@ -37,7 +41,7 @@ export class WorkoutPlansController {
     @Param('id') id: string,
     @CurrentUser() user: any,
   ) {
-    return this.workoutPlansService.findOne(id, user.id);
+    return this.workoutPlansService.findOne(id, user);
   }
 
   @Put(':id')
@@ -47,7 +51,7 @@ export class WorkoutPlansController {
     @Body() dto: UpdateWorkoutPlanDto,
     @CurrentUser() user: any,
   ) {
-    return this.workoutPlansService.update(id, dto, user.id);
+    return this.workoutPlansService.update(id, dto, user);
   }
 
   @Delete(':id')
@@ -56,6 +60,6 @@ export class WorkoutPlansController {
     @Param('id') id: string,
     @CurrentUser() user: any,
   ) {
-    return this.workoutPlansService.remove(id, user.id);
+    return this.workoutPlansService.remove(id, user);
   }
 }
