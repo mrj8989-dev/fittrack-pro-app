@@ -7,14 +7,14 @@ async function main() {
   console.log('🌱 Iniciando seeder...');
 
   // ── USUARIO ──────────────────────────────────────────────────────
-  const hashedPassword = await bcrypt.hash('123456', 10);
+  const hashedPassword = await bcrypt.hash('demo1234', 10);
   const user = await prisma.user.upsert({
-    where: { email: 'jaime@fittrack.com' },
+    where: { email: 'demo@fittrack.com' },
     update: {},
     create: {
-      email: 'jaime@fittrack.com',
+      email: 'demo@fittrack.com',
       password: hashedPassword,
-      name: 'Jaime Herrero',
+      name: 'Demo Admin',
       role: 'ADMIN',
       subscriptionPlan: 'PRO',
       revisionInterval: 14,

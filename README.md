@@ -52,7 +52,7 @@ cd backend && node_modules/.bin/prisma studio
 
 **DevOps**
 - Docker + docker-compose
-- GitHub Actions CI/CD
+- GitHub Actions (CI: tests y build)
 - Deploy en Railway (próximamente)
 
 ## ✅ Features implementadas
@@ -123,7 +123,9 @@ cd backend && node_modules/.bin/prisma studio
 - [ ] Página **"Mis planes"** (`/planes`) — el cliente ve el plan de entrenamiento que tiene asignado (solo rol CLIENT)
 - [ ] Página de **récords** rediseñada centrada en el progreso máximo del propio cliente (solo CLIENT — no tiene sentido para TRAINER/ADMIN)
 - [ ] Revisar navegación por rol: cada rol debe ver solo lo suyo. El panel de entrenador debe limitarse a gestionar clientes y ejercicios — sin acceso a Entrenar, Progreso, Revisiones, Récords ni Mis planes (eso es personal de cada CLIENT)
-- [ ] CI/CD con GitHub Actions
+- [x] CI con GitHub Actions (tests y build en cada push/PR)
+- [ ] Limpiar errores de lint (prettier/`any`) y añadirlo al CI
+- [ ] CD automático
 - [ ] Deploy en producción
 
 ## 🌱 Seeder
@@ -138,7 +140,7 @@ El seeder usa `upsert` — seguro ejecutarlo múltiples veces. Para añadir ejer
 **Datos incluidos:**
 - 24 ejercicios con descripción técnica y vídeo de referencia en español
 - Plan Upper/Lower de hipertrofia de 4 días para casa (barra + mancuernas)
-- Usuario: `jaime@fittrack.com` / `123456`
+- Usuario demo (ADMIN, plan PRO): `demo@fittrack.com` / `demo1234` — solo para desarrollo local
 
 ## 🛠️ Instalación desde cero
 
@@ -148,14 +150,15 @@ El seeder usa `upsert` — seguro ejecutarlo múltiples veces. Para añadir ejer
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/TU_USUARIO/fittrack-pro.git
-cd fittrack-pro
+git clone https://github.com/mrj8989-dev/fittrack-pro-app.git
+cd fittrack-pro-app
 
-# Levantar PostgreSQL
+# Levantar PostgreSQL (en desarrollo, docker-compose solo se usa para la base de datos)
 docker-compose up -d postgres
 
 # Backend
 cd backend
+cp .env.example .env   # y rellena JWT_SECRET (el comando para generarlo está en el propio fichero)
 npm install
 npx prisma migrate dev
 npm run seed
@@ -166,6 +169,17 @@ cd frontend
 npm install
 npm run dev
 ```
+
+> **Nota sobre Docker:** para desarrollo solo se levanta PostgreSQL (`docker-compose up -d postgres`). El `docker-compose.yml` también define `backend` y `frontend` para ejecutar todo en contenedores; en ese caso crea un `.env` en la raíz a partir de `.env.example` con `JWT_SECRET` y ejecuta `docker-compose up --build`.
+
+## 🧪 Tests
+
+```bash
+cd backend
+npm test
+```
+
+Incluye tests unitarios del servicio de sesiones de entrenamiento (permisos de acceso entrenador/cliente, récords personales y progreso). La integración continua (`.github/workflows/ci.yml`) ejecuta tests y build de backend y build de frontend en cada push y PR.
 
 ## 📁 Estructura del proyecto
 

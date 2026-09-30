@@ -20,7 +20,7 @@ services:
     container_name: fittrack_backend
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/fittrack_pro
-      JWT_SECRET: fittrack_super_secret_key_2024
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en un .env junto a docker-compose.yml}
       JWT_EXPIRES_IN: 7d
       PORT: 3000
     ports:

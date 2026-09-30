@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useUnreadCount } from '../../hooks/useMessages'
@@ -32,7 +32,6 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
   const { mode, toggleMode } = useTheme()
-  const location = useLocation()
   const { data: unreadCount = 0 } = useUnreadCount()
   const badgePath = user?.role ? CHAT_BADGE_PATH[user.role] : undefined
 
