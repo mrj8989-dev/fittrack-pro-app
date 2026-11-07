@@ -6,21 +6,49 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Iniciando seeder...');
 
-  // ── USUARIO ──────────────────────────────────────────────────────
+  // ── USUARIOS (uno por rol, misma contraseña) ─────────────────────
   const hashedPassword = await bcrypt.hash('demo1234', 10);
-  const user = await prisma.user.upsert({
-    where: { email: 'demo@fittrack.com' },
+
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@fittrack.com' },
     update: {},
     create: {
-      email: 'demo@fittrack.com',
+      email: 'admin@fittrack.com',
       password: hashedPassword,
       name: 'Demo Admin',
       role: 'ADMIN',
-      subscriptionPlan: 'PRO',
-      revisionInterval: 14,
+      subscriptionPlan: 'PREMIUM',
     },
   });
-  console.log('✅ Usuario creado:', user.email);
+
+  const trainer = await prisma.user.upsert({
+    where: { email: 'trainer@fittrack.com' },
+    update: {},
+    create: {
+      email: 'trainer@fittrack.com',
+      password: hashedPassword,
+      name: 'Demo Entrenador',
+      role: 'TRAINER',
+      subscriptionPlan: 'PRO',
+    },
+  });
+
+  // El usuario demo es un CLIENT con entrenador asignado. El `update` migra
+  // bases de datos antiguas donde demo@ se creó como ADMIN.
+  const user = await prisma.user.upsert({
+    where: { email: 'demo@fittrack.com' },
+    update: { role: 'CLIENT', name: 'Demo Cliente', trainerId: trainer.id },
+    create: {
+      email: 'demo@fittrack.com',
+      password: hashedPassword,
+      name: 'Demo Cliente',
+      role: 'CLIENT',
+      subscriptionPlan: 'PRO',
+      revisionInterval: 14,
+      trainerId: trainer.id,
+    },
+  });
+  console.log('✅ Usuarios creados:', [admin, trainer, user].map(u => u.email).join(', '));
 
   // ── EJERCICIOS ───────────────────────────────────────────────────
   const exercises = await Promise.all([

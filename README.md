@@ -122,7 +122,7 @@ cd backend && node_modules/.bin/prisma studio
 - [ ] Panel de ADMIN: gestión de entrenadores y qué cliente lleva cada uno
 - [ ] Página **"Mis planes"** (`/planes`) — el cliente ve el plan de entrenamiento que tiene asignado (solo rol CLIENT)
 - [ ] Página de **récords** rediseñada centrada en el progreso máximo del propio cliente (solo CLIENT — no tiene sentido para TRAINER/ADMIN)
-- [ ] Revisar navegación por rol: cada rol debe ver solo lo suyo. El panel de entrenador debe limitarse a gestionar clientes y ejercicios — sin acceso a Entrenar, Progreso, Revisiones, Récords ni Mis planes (eso es personal de cada CLIENT)
+- [x] Navegación por rol: cada rol ve solo lo suyo (menú, rutas protegidas en el frontend y `@Roles` en sesiones y revisiones). El entrenador gestiona clientes y ejercicios; Entrenar, Progreso y Revisiones son personales del CLIENT
 - [x] CI con GitHub Actions (tests y build en cada push/PR)
 - [ ] Limpiar errores de lint (prettier/`any`) y añadirlo al CI
 - [ ] CD automático
@@ -140,7 +140,10 @@ El seeder usa `upsert` — seguro ejecutarlo múltiples veces. Para añadir ejer
 **Datos incluidos:**
 - 24 ejercicios con descripción técnica y vídeo de referencia en español
 - Plan Upper/Lower de hipertrofia de 4 días para casa (barra + mancuernas)
-- Usuario demo (ADMIN, plan PRO): `demo@fittrack.com` / `demo1234` — solo para desarrollo local
+- Un usuario demo por rol, todos con contraseña `demo1234` (solo para desarrollo local):
+  - CLIENT (plan PRO, con rutina y entrenador asignado): `demo@fittrack.com`
+  - TRAINER: `trainer@fittrack.com`
+  - ADMIN: `admin@fittrack.com`
 
 ## 🛠️ Instalación desde cero
 

@@ -11,6 +11,7 @@ import RevisionsPage from './pages/RevisionsPage'
 import TrainerPage from './pages/TrainerPage'
 import ExercisesPage from './pages/ExercisesPage'
 import ChatPage from './pages/ChatPage'
+import { canAccess, homePathFor } from './lib/roleAccess'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -20,6 +21,14 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
     </div>
   )
   return user ? <>{children}</> : <Navigate to="/login" replace />
+}
+
+// Si el rol no tiene acceso a la ruta, lo manda a su página de inicio.
+function RoleRoute({ path, children }: { path: string; children: React.ReactNode }) {
+  const { user } = useAuth()
+  return canAccess(user?.role, path)
+    ? <>{children}</>
+    : <Navigate to={homePathFor(user?.role)} replace />
 }
 
 export default function App() {
@@ -33,14 +42,14 @@ export default function App() {
           <Layout />
         </PrivateRoute>
       }>
-        <Route index element={<DashboardPage />} />
-        <Route path="workout" element={<WorkoutPage />} />
-        <Route path="progreso" element={<ProgressPage />} />
-        <Route path="ajustes" element={<SettingsPage />} />
-        <Route path="revisiones" element={<RevisionsPage />} />
-        <Route path="entrenador" element={<TrainerPage />} />
-        <Route path="ejercicios" element={<ExercisesPage />} />
-        <Route path="chat" element={<ChatPage />} />
+        <Route index element={<RoleRoute path="/"><DashboardPage /></RoleRoute>} />
+        <Route path="workout" element={<RoleRoute path="/workout"><WorkoutPage /></RoleRoute>} />
+        <Route path="progreso" element={<RoleRoute path="/progreso"><ProgressPage /></RoleRoute>} />
+        <Route path="ajustes" element={<RoleRoute path="/ajustes"><SettingsPage /></RoleRoute>} />
+        <Route path="revisiones" element={<RoleRoute path="/revisiones"><RevisionsPage /></RoleRoute>} />
+        <Route path="entrenador" element={<RoleRoute path="/entrenador"><TrainerPage /></RoleRoute>} />
+        <Route path="ejercicios" element={<RoleRoute path="/ejercicios"><ExercisesPage /></RoleRoute>} />
+        <Route path="chat" element={<RoleRoute path="/chat"><ChatPage /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/landing" replace />} />
     </Routes>

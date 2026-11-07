@@ -7,11 +7,16 @@ import { WorkoutSessionsService } from './workout-sessions.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { CreateSessionSetDto } from './dto/create-session-set.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Role } from '@prisma/client';
 
+// Las sesiones son datos personales del CLIENT; el TRAINER solo puede consultar las de sus clientes.
 @ApiTags('workout-sessions')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.CLIENT)
 @Controller('workout-sessions')
 export class WorkoutSessionsController {
   constructor(private workoutSessionsService: WorkoutSessionsService) {}
@@ -26,6 +31,7 @@ export class WorkoutSessionsController {
   }
 
   @Get()
+  @Roles(Role.CLIENT, Role.TRAINER)
   @ApiOperation({ summary: 'Obtener historial de sesiones (propio, o de un cliente si eres su entrenador)' })
   @ApiQuery({ name: 'clientId', required: false })
   findAll(
@@ -36,6 +42,7 @@ export class WorkoutSessionsController {
   }
 
   @Get('records')
+  @Roles(Role.CLIENT, Role.TRAINER)
   @ApiOperation({ summary: 'Obtener récords personales por ejercicio' })
   @ApiQuery({ name: 'clientId', required: false })
   getPersonalRecords(
@@ -46,6 +53,7 @@ export class WorkoutSessionsController {
   }
 
   @Get('progress')
+  @Roles(Role.CLIENT, Role.TRAINER)
   @ApiOperation({ summary: 'Obtener progreso de un ejercicio a lo largo del tiempo' })
   @ApiQuery({ name: 'exerciseId', required: true })
   @ApiQuery({ name: 'clientId', required: false })
