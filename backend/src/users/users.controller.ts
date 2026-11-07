@@ -28,9 +28,12 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @Get('clients')
-  @ApiOperation({ summary: 'Obtener clientes del entrenador autenticado' })
+  @Roles(Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Clientes del entrenador autenticado (el admin obtiene todos los clientes)' })
   findClients(@CurrentUser() user: any) {
-    return this.usersService.findClientsByTrainer(user.id);
+    return user.role === Role.ADMIN
+      ? this.usersService.findAllClients()
+      : this.usersService.findClientsByTrainer(user.id);
   }
 
   @Post('clients')

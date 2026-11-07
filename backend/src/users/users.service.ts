@@ -39,6 +39,14 @@ export class UsersService {
     });
   }
 
+  async findAllClients() {
+    return this.prisma.user.findMany({
+      where: { role: Role.CLIENT },
+      select: { id: true, name: true, email: true, subscriptionPlan: true, createdAt: true, profilePhoto: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async assignClient(email: string, trainerId: string) {
     const client = await this.prisma.user.findUnique({ where: { email } });
     if (!client || client.role !== Role.CLIENT) {

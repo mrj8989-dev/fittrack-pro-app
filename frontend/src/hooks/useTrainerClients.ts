@@ -1,10 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 
-export function useClients() {
-  return useQuery({
+export interface TrainerClient {
+  id: string
+  name: string
+  email: string
+  subscriptionPlan: string
+  createdAt: string
+  profilePhoto: string | null
+}
+
+export function useClients(enabled = true) {
+  return useQuery<TrainerClient[]>({
     queryKey: ['trainer-clients'],
     queryFn: () => api.get('/users/clients').then(r => r.data),
+    enabled,
   })
 }
 
