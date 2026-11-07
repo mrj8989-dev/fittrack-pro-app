@@ -3,25 +3,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useUnreadCount } from '../../hooks/useMessages'
 import Avatar from '../Avatar'
+import { NAV_BY_ROLE, isRole } from '../../lib/roleAccess'
 
-interface NavItem {
-  path: string
-  label: string
-  icon: string
-}
-
-const navItems: NavItem[] = [
-  { path: '/',           label: 'Dashboard',      icon: 'ti-layout-dashboard' },
-  { path: '/workout',    label: 'Entrenar',        icon: 'ti-barbell' },
-  { path: '/planes',     label: 'Mis planes',      icon: 'ti-clipboard-list' },
-  { path: '/progreso',   label: 'Progreso',        icon: 'ti-chart-line' },
-  { path: '/revisiones', label: 'Revisiones',      icon: 'ti-camera' },
-  { path: '/records',    label: 'Récords',         icon: 'ti-trophy' },
-  { path: '/ejercicios', label: 'Ejercicios',      icon: 'ti-crown' },
-]
-
-const trainerNavItem: NavItem = { path: '/entrenador', label: 'Entrenador', icon: 'ti-users' }
-const chatNavItem: NavItem = { path: '/chat', label: 'Chat', icon: 'ti-message-circle' }
 const CHAT_BADGE_PATH: Record<string, string> = { TRAINER: '/entrenador', CLIENT: '/chat' }
 
 interface SidebarProps {
@@ -71,11 +54,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </span>
         </div>
 
-        {(
-          user?.role === 'TRAINER' ? [...navItems, trainerNavItem]
-          : user?.role === 'CLIENT' ? [...navItems, chatNavItem]
-          : navItems
-        ).map(item => (
+        {(isRole(user?.role) ? NAV_BY_ROLE[user.role] : []).map(item => (
           <NavLink
             key={item.path}
             to={item.path}

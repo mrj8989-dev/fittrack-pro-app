@@ -10,7 +10,10 @@ import { BodyRevisionsService } from './body-revisions.service';
 import { CreateBodyRevisionDto } from './dto/create-body-revision.dto';
 import { UpdateRevisionIntervalDto } from './dto/update-revision-interval.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Role } from '@prisma/client';
 
 const storage = diskStorage({
   destination: './public/uploads',
@@ -22,7 +25,8 @@ const storage = diskStorage({
 
 @ApiTags('body-revisions')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.CLIENT)
 @Controller('body-revisions')
 export class BodyRevisionsController {
   constructor(private bodyRevisionsService: BodyRevisionsService) {}
