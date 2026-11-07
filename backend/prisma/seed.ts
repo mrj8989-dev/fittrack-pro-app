@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { assignDemoMenu, seedNutrition } from './seed-nutrition';
+import { EXERCISE_CATALOG } from './exercise-catalog';
 
 const prisma = new PrismaClient();
 
@@ -78,7 +79,11 @@ async function main() {
     prisma.exercise.upsert({ where: { id: 'ex-plancha' }, update: {}, create: { id: 'ex-plancha', name: 'Plancha', muscleGroup: 'Core', equipment: 'Peso corporal', description: 'Estabilización de core. Cuerpo recto, no subas las caderas.', videoUrl: 'https://www.youtube.com/watch?v=ASdvN_XEl_c' } }),
     prisma.exercise.upsert({ where: { id: 'ex-rueda-ab' }, update: {}, create: { id: 'ex-rueda-ab', name: 'Rueda abdominal', muscleGroup: 'Core', equipment: 'Rueda abdominal', description: 'Excelente para core completo. Empieza de rodillas hasta dominar el movimiento.', videoUrl: 'https://www.youtube.com/watch?v=1G1AFwTsRYQ' } }),
   ]);
-  console.log(`✅ ${exercises.length} ejercicios creados`);
+  // Catálogo ampliado: upsert por id, así re-ejecutar el seed actualiza los textos sin duplicar.
+  for (const { id, ...data } of EXERCISE_CATALOG) {
+    await prisma.exercise.upsert({ where: { id }, update: data, create: { id, ...data } });
+  }
+  console.log(`✅ ${exercises.length + EXERCISE_CATALOG.length} ejercicios en el catálogo`);
 
   // ── PLAN ─────────────────────────────────────────────────────────
   let plan = await prisma.workoutPlan.findFirst({

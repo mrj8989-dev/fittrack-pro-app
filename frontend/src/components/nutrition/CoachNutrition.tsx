@@ -15,7 +15,7 @@ function PlanCard({ plan, selected, onClick }: { plan: MealPlanSummary; selected
     <button onClick={onClick} style={{
       textAlign: 'left', cursor: 'pointer', borderRadius: '10px', padding: '10px 12px',
       background: selected ? 'var(--bg-primary)' : 'var(--bg-secondary)',
-      border: `0.5px solid ${selected ? 'var(--accent-primary)' : 'var(--border)'}`,
+      border: `1px solid ${selected ? 'var(--accent-primary)' : 'var(--border)'}`,
       display: 'flex', flexDirection: 'column', gap: '2px',
     }}>
       <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{plan.name}</span>
@@ -51,7 +51,7 @@ function AssignPanel({ plan }: { plan: MealPlan }) {
           { onSuccess: () => setAssignedTo(clients.find(c => c.id === clientId)?.name ?? null) },
         )
       }}
-      style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '0.5px solid var(--border)', flexWrap: 'wrap' }}
+      style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}
     >
       <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Asignar a</span>
       <select value={clientId} onChange={e => { setClientId(e.target.value); setKcal(null); setAssignedTo(null) }} required
@@ -71,7 +71,7 @@ function AssignPanel({ plan }: { plan: MealPlan }) {
         <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Este cliente aún no ha calculado sus objetivos.</span>
       )}
       {assignedTo && <span style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>✓ Asignado a {assignedTo}</span>}
-      {assign.isError && <span style={{ fontSize: '12px', color: '#E24B4A' }}>No se pudo asignar.</span>}
+      {assign.isError && <span style={{ fontSize: '12px', color: 'var(--danger)' }}>No se pudo asignar.</span>}
     </form>
   )
 }

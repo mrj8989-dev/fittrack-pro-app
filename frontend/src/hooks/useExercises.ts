@@ -1,8 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import api from '../lib/api'
 
+export interface Exercise {
+  id: string
+  name: string
+  description: string | null
+  muscleGroup: string
+  equipment: string | null
+  videoUrl: string | null
+}
+
 export function useExercises(filters?: { muscleGroup?: string; equipment?: string }) {
-  return useQuery({
+  return useQuery<Exercise[]>({
     queryKey: ['exercises', filters],
     queryFn: () => api.get('/exercises', { params: filters }).then(r => r.data),
   })

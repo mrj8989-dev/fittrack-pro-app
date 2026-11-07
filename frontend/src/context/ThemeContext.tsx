@@ -11,11 +11,11 @@ interface ThemeContextType {
 }
 
 const accentColors: Record<AccentColor, { primary: string; light: string; dark: string }> = {
-  green:  { primary: '#1D9E75', light: '#5DCAA5', dark: '#0F6E56' },
-  blue:   { primary: '#378ADD', light: '#85B7EB', dark: '#185FA5' },
-  purple: { primary: '#7F77DD', light: '#AFA9EC', dark: '#534AB7' },
+  green:  { primary: '#10B981', light: '#6EE7B7', dark: '#047857' },
+  blue:   { primary: '#3B82F6', light: '#93C5FD', dark: '#1D4ED8' },
+  purple: { primary: '#8B5CF6', light: '#C4B5FD', dark: '#6D28D9' },
   cyan:   { primary: '#06B6D4', light: '#67E8F9', dark: '#0E7490' },
-  orange: { primary: '#EF9F27', light: '#FAC775', dark: '#BA7517' },
+  orange: { primary: '#F97316', light: '#FDBA74', dark: '#C2410C' },
 }
 
 const ThemeContext = createContext<ThemeContextType | null>(null)

@@ -61,7 +61,7 @@ function FoodForm({ initial, submitting, onSubmit, onCancel }: {
       <input type="number" step="0.1" min={0} value={form.fat} onChange={set('fat')} placeholder="Grasa g *" required aria-label="Grasa por 100 g" style={inputStyle} />
       <input type="number" step="1" min={1} value={form.gramsPerUnit} onChange={set('gramsPerUnit')} placeholder="g por unidad" aria-label="Gramos por unidad" style={inputStyle} />
       {kcalMismatch && (
-        <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: '#E0A030' }}>
+        <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--warning)' }}>
           Con esos macros salen unas {Math.round(computedKcal)} kcal. Revisa que todo sea por 100 g.
         </div>
       )}
@@ -93,7 +93,7 @@ export default function FoodCatalog() {
     <div style={cardStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)' }}>Catálogo de alimentos</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Catálogo de alimentos</div>
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             {foods.length} alimentos, valores por 100 g en crudo. Lo que añadas aquí lo podrán usar todos los usuarios en sus menús.
           </div>
@@ -125,7 +125,7 @@ export default function FoodCatalog() {
       </div>
 
       {deleteFood.isError && (
-        <div style={{ fontSize: '12px', color: '#E24B4A', margin: '6px 0' }}>
+        <div style={{ fontSize: '12px', color: 'var(--danger)', margin: '6px 0' }}>
           No se puede borrar: el alimento se usa en algún menú.
         </div>
       )}
@@ -140,7 +140,7 @@ export default function FoodCatalog() {
             onSubmit={data => updateFood.mutate({ id: f.id, ...data }, { onSuccess: () => setEditingId(null) })}
           />
         ) : (
-          <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderTop: '0.5px solid var(--border)' }}>
+          <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderTop: '1px solid var(--border)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{f.name}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>

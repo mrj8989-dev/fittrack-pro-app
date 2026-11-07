@@ -116,7 +116,7 @@ function ItemRow({ planId, item, mode }: { planId: string; item: MealItem; mode:
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderTop: '0.5px solid var(--border)', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 160px', minWidth: 0 }}>
           <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{item.food.name}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
@@ -220,7 +220,7 @@ function MealCard({ planId, meal, mode }: { planId: string; meal: Meal; mode: Ed
   const readOnly = mode !== 'edit'
   const renameMeal = useRenameMeal()
   const removeMeal = useRemoveMeal()
-  const nameStyle: React.CSSProperties = { fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }
+  const nameStyle: React.CSSProperties = { fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }
 
   return (
     <div style={{ ...cardStyle, padding: '1rem' }}>
@@ -308,7 +308,7 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
   const deletePlan = useDeleteMealPlan()
 
   const current = plan.days.find(d => d.dayOfWeek === day) ?? plan.days[0]
-  const titleStyle: React.CSSProperties = { fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)' }
+  const titleStyle: React.CSSProperties = { fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -384,11 +384,13 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
             onClick={() => setDay(d.dayOfWeek)}
             title={DAY_LABEL[d.dayOfWeek - 1]}
             style={{
-              flex: '1 0 44px', padding: '8px 0', borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
-              border: '0.5px solid var(--border)',
-              background: d.dayOfWeek === day ? 'var(--accent-primary)' : 'var(--bg-secondary)',
+              flex: '1 0 44px', height: '34px', borderRadius: '10px', fontSize: '13px',
+              border: `1px solid ${d.dayOfWeek === day ? 'transparent' : 'var(--border)'}`,
+              background: d.dayOfWeek === day ? 'var(--accent-gradient)' : 'var(--bg-secondary)',
               color: d.dayOfWeek === day ? '#fff' : 'var(--text-secondary)',
-              fontWeight: d.dayOfWeek === day ? 500 : 400,
+              fontWeight: 600,
+              boxShadow: d.dayOfWeek === day ? '0 6px 16px -8px var(--accent-primary)' : 'var(--shadow-sm)',
+              transition: 'background 0.15s, box-shadow 0.15s',
             }}
           >
             {DAY_SHORT[d.dayOfWeek - 1]}
@@ -396,8 +398,8 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
         ))}
       </div>
 
-      <div style={cardStyle}>
-        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '10px' }}>
+      <div style={{ ...cardStyle, padding: '0.875rem 1.25rem' }}>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
           {DAY_LABEL[current.dayOfWeek - 1]}{targets ? ' frente al objetivo' : ''}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
@@ -407,18 +409,17 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
         </div>
       </div>
 
-      {current.meals.map(meal => <MealCard key={meal.id} planId={plan.id} meal={meal} mode={mode} />)}
-      {!readOnly && <AddMealRow planId={plan.id} dayOfWeek={current.dayOfWeek} />}
+      <div className="meals-grid">
+        {current.meals.map(meal => <MealCard key={meal.id} planId={plan.id} meal={meal} mode={mode} />)}
+        {!readOnly && <AddMealRow planId={plan.id} dayOfWeek={current.dayOfWeek} />}
+      </div>
     </div>
   )
 }
 
 function Badge({ icon, children }: { icon: string; children: React.ReactNode }) {
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '2px 8px',
-      borderRadius: '20px', border: '0.5px solid var(--border)', color: 'var(--text-secondary)',
-    }}>
+    <span className="badge">
       <i className={`ti ${icon}`} aria-hidden="true" />
       {children}
     </span>

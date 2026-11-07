@@ -4,7 +4,8 @@ import { useClientMealPlans, useMealPlan, useNutritionProfile } from '../hooks/u
 import ProfileCard from '../components/nutrition/ProfileCard'
 import MealPlanEditor from '../components/nutrition/MealPlanEditor'
 import CoachNutrition from '../components/nutrition/CoachNutrition'
-import { cardStyle, inputStyle } from '../components/nutrition/shared'
+import { inputStyle } from '../components/nutrition/shared'
+import { EmptyState, Loader, PageHeader } from '../components/ui'
 
 /** El cliente ve los menús que le asignan su entrenador o el admin. */
 function ClientNutrition() {
@@ -32,16 +33,12 @@ function ClientNutrition() {
       )}
 
       {plansLoading ? (
-        <div style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>Cargando...</div>
+        <Loader inline />
       ) : plans.length === 0 ? (
-        <div style={{ ...cardStyle, textAlign: 'center', padding: '2rem' }}>
-          <i className="ti ti-salad" style={{ fontSize: '28px', color: 'var(--accent-primary)' }} aria-hidden="true" />
-          <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginTop: '8px' }}>
-            Aún no tienes un menú asignado
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+        <div className="card">
+          <EmptyState icon="ti-salad" title="Aún no tienes un menú asignado">
             Tu entrenador te asignará uno ajustado a tus objetivos. Mientras tanto, rellena tus datos arriba para que pueda calcularlos.
-          </div>
+          </EmptyState>
         </div>
       ) : plan ? (
         <MealPlanEditor key={plan.id} plan={plan} targets={targets} />
@@ -55,19 +52,16 @@ export default function NutritionPage() {
   const isClient = user?.role === 'CLIENT'
 
   return (
-    <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div>
-        <h1 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-          Nutrición
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          {isClient
-            ? 'Tus calorías y macros según tu objetivo, y el menú semanal que te ha preparado tu entrenador'
-            : user?.role === 'TRAINER'
-              ? 'Crea plantillas de menú, asígnalas a tus clientes y ajusta los menús que ya tienen'
-              : 'Gestiona las plantillas del catálogo, los menús de los clientes y los alimentos'}
-        </p>
-      </div>
+    <div className="page" style={{ maxWidth: '1440px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <PageHeader
+        eyebrow={<><i className="ti ti-salad" aria-hidden="true" /> Nutrición</>}
+        title={isClient ? 'Tu alimentación' : 'Nutrición'}
+        subtitle={isClient
+          ? 'Tus calorías y macros según tu objetivo, y el menú semanal que te ha preparado tu entrenador'
+          : user?.role === 'TRAINER'
+            ? 'Crea plantillas de menú, asígnalas a tus clientes y ajusta los menús que ya tienen'
+            : 'Gestiona las plantillas del catálogo, los menús de los clientes y los alimentos'}
+      />
 
       {isClient ? <ClientNutrition /> : <CoachNutrition isTrainer={user?.role === 'TRAINER'} />}
     </div>

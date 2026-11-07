@@ -79,15 +79,21 @@ export class WorkoutPlansService {
     });
   }
 
-  /** Un plan es accesible por su dueño, o por su entrenador asignado. */
+  /** Un plan es accesible por su dueño, por su entrenador asignado o por un admin. */
   private canAccess(ownerId: string, ownerTrainerId: string | null, user: { id: string; role: Role }) {
-    if (ownerId === user.id) return true;
+    if (ownerId === user.id || user.role === Role.ADMIN) return true;
     return user.role === Role.TRAINER && ownerTrainerId === user.id;
   }
 
   /** Resuelve el userId propietario de un plan: el propio caller, o (si es trainer) uno de sus clientes. */
   private async resolveOwnerId(targetUserId: string | undefined, user: { id: string; role: Role }) {
     if (!targetUserId || targetUserId === user.id) return user.id;
+
+    if (user.role === Role.ADMIN) {
+      const target = await this.prisma.user.findUnique({ where: { id: targetUserId } });
+      if (!target) throw new NotFoundException('Usuario no encontrado');
+      return targetUserId;
+    }
 
     if (user.role !== Role.TRAINER) {
       throw new ForbiddenException('Solo un entrenador puede gestionar el plan de otro usuario');

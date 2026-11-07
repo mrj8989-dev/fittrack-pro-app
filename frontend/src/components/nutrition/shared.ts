@@ -1,49 +1,6 @@
 import type { ActivityLevel, FoodGroup, Macros, NutritionGoal } from '../../hooks/useNutrition'
 
-export const inputStyle: React.CSSProperties = {
-  padding: '9px 12px',
-  background: 'var(--bg-primary)',
-  border: '0.5px solid var(--border)',
-  borderRadius: '8px',
-  color: 'var(--text-primary)',
-  fontSize: '13px',
-  outline: 'none',
-}
-
-export const primaryButtonStyle: React.CSSProperties = {
-  padding: '9px 16px',
-  background: 'var(--accent-primary)',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '13px',
-  fontWeight: 500,
-  cursor: 'pointer',
-}
-
-export const secondaryButtonStyle: React.CSSProperties = {
-  ...primaryButtonStyle,
-  background: 'transparent',
-  color: 'var(--text-secondary)',
-  border: '0.5px solid var(--border)',
-}
-
-export const iconButtonStyle: React.CSSProperties = {
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  color: 'var(--text-tertiary)',
-  padding: '4px',
-  fontSize: '16px',
-  lineHeight: 1,
-}
-
-export const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-secondary)',
-  border: '0.5px solid var(--border)',
-  borderRadius: '12px',
-  padding: '1.25rem',
-}
+export { inputStyle, primaryButtonStyle, secondaryButtonStyle, iconButtonStyle, cardStyle } from '../../lib/styles'
 
 export const FOOD_GROUP_LABEL: Record<FoodGroup, string> = {
   PROTEIN: 'Proteínas',

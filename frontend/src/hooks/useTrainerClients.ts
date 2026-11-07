@@ -21,7 +21,8 @@ export function useClients(enabled = true) {
 export function useAddClient() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (email: string) => api.post('/users/clients', { email }).then(r => r.data),
+    mutationFn: (data: { email: string; name?: string; password?: string }) =>
+      api.post<TrainerClient>('/users/clients', data).then(r => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trainer-clients'] })
     },

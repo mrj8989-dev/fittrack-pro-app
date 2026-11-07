@@ -2,6 +2,12 @@
 
 export type Role = 'ADMIN' | 'TRAINER' | 'CLIENT'
 
+export const ROLE_LABEL: Record<Role, string> = {
+  ADMIN: 'Administrador',
+  TRAINER: 'Entrenador',
+  CLIENT: 'Cliente',
+}
+
 export interface NavItem {
   path: string
   label: string
@@ -16,13 +22,15 @@ const nutrition: NavItem = { path: '/nutricion', label: 'Nutrición', icon: 'ti-
 const exercises: NavItem = { path: '/ejercicios', label: 'Ejercicios', icon: 'ti-crown' }
 const chat: NavItem = { path: '/chat', label: 'Chat', icon: 'ti-message-circle' }
 const clients: NavItem = { path: '/entrenador', label: 'Clientes', icon: 'ti-users' }
+const admin: NavItem = { path: '/admin', label: 'Panel', icon: 'ti-shield-star' }
 
 // Entrenar, Progreso y Revisiones son datos personales del CLIENT. En Nutrición, el CLIENT
-// gestiona sus menús; el TRAINER, sus plantillas y los menús de sus clientes; el ADMIN, el catálogo.
+// gestiona sus menús; el TRAINER, sus plantillas y los menús de sus clientes; el ADMIN, todo:
+// usuarios y roles (Panel), planes e historial de cualquier cliente (Clientes), menús y catálogos.
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   CLIENT: [dashboard, workout, progress, revisions, nutrition, exercises, chat],
   TRAINER: [clients, nutrition, exercises],
-  ADMIN: [exercises, nutrition],
+  ADMIN: [admin, clients, nutrition, exercises],
 }
 
 // Rutas accesibles a todos los roles autenticados aunque no estén en el menú principal.

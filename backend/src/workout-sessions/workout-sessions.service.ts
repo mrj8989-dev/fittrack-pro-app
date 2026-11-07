@@ -14,6 +14,8 @@ export class WorkoutSessionsService {
   private async resolveTargetUserId(clientId: string | undefined, user: AuthUser) {
     if (!clientId || clientId === user.id) return user.id;
 
+    if (user.role === Role.ADMIN) return clientId;
+
     if (user.role !== Role.TRAINER) {
       throw new ForbiddenException('Solo un entrenador puede consultar el historial de otro usuario');
     }

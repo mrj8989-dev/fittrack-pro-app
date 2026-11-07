@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useUnreadCount } from '../../hooks/useMessages'
 import Avatar from '../Avatar'
-import { NAV_BY_ROLE, isRole } from '../../lib/roleAccess'
+import { NAV_BY_ROLE, ROLE_LABEL, isRole } from '../../lib/roleAccess'
 
 const CHAT_BADGE_PATH: Record<string, string> = { TRAINER: '/entrenador', CLIENT: '/chat' }
 
@@ -11,6 +11,8 @@ interface SidebarProps {
   isOpen: boolean
   onClose: () => void
 }
+
+const navClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? ' active' : ''}`
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
@@ -20,142 +22,50 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {isOpen && (
-        <div
-          onClick={onClose}
-          className="sidebar-overlay"
-        />
-      )}
+      {isOpen && <div onClick={onClose} className="sidebar-overlay" />}
 
-      <aside style={{
-        width: '220px',
-        minHeight: '100vh',
-        background: 'var(--bg-secondary)',
-        borderRight: '0.5px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '1.5rem 0.75rem',
-        gap: '4px',
-        flexShrink: 0,
-        transition: 'transform 0.25s ease',
-      }}
-      className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '0 0.75rem',
-          marginBottom: '1.5rem',
-        }}>
-          <i className="ti ti-bolt" style={{ color: 'var(--accent-primary)', fontSize: '22px' }} aria-hidden="true" />
-          <span style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text-primary)' }}>
-            Fit<span style={{ color: 'var(--accent-primary)' }}>Track</span>
-          </span>
+      <aside className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
+        <div className="brand" style={{ marginBottom: '0.5rem' }}>
+          <span className="brand-mark"><i className="ti ti-bolt" aria-hidden="true" /></span>
+          <span className="brand-name">Fit<span>Track</span></span>
+          <span className="badge badge-accent" style={{ marginLeft: 'auto', height: '20px', fontSize: '10px' }}>PRO</span>
         </div>
 
+        <div className="nav-label">Menú</div>
         {(isRole(user?.role) ? NAV_BY_ROLE[user.role] : []).map(item => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === '/'}
-            onClick={onClose}
-            style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '9px 12px',
-              borderRadius: '8px',
-              fontSize: '13px',
-              fontWeight: isActive ? 500 : 400,
-              color: isActive ? '#fff' : 'var(--text-secondary)',
-              background: isActive ? 'var(--accent-primary)' : 'transparent',
-              textDecoration: 'none',
-              transition: 'all 0.15s',
-            })}
-          >
-            <i className={`ti ${item.icon}`} style={{ fontSize: '17px' }} aria-hidden="true" />
+          <NavLink key={item.path} to={item.path} end={item.path === '/'} onClick={onClose} className={navClass}>
+            <i className={`ti ${item.icon}`} aria-hidden="true" />
             {item.label}
             {item.path === badgePath && unreadCount > 0 && (
-              <span style={{
-                marginLeft: 'auto',
-                minWidth: '16px', height: '16px', padding: '0 4px',
-                borderRadius: '999px',
-                background: '#E24B4A',
-                color: '#fff',
-                fontSize: '10px',
-                fontWeight: 600,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
+              <span className="nav-count">{unreadCount > 9 ? '9+' : unreadCount}</span>
             )}
           </NavLink>
         ))}
 
-        <div style={{ flex: 1 }} />
+        <div style={{ flex: 1, minHeight: '1rem' }} />
 
-        <NavLink
-          to="/ajustes"
-          onClick={onClose}
-          style={({ isActive }) => ({
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '9px 12px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            color: isActive ? '#fff' : 'var(--text-secondary)',
-            background: isActive ? 'var(--accent-primary)' : 'transparent',
-            textDecoration: 'none',
-          })}
-        >
-          <i className="ti ti-settings" style={{ fontSize: '17px' }} aria-hidden="true" />
+        <div className="nav-label">Cuenta</div>
+        <NavLink to="/ajustes" onClick={onClose} className={navClass}>
+          <i className="ti ti-settings" aria-hidden="true" />
           Ajustes
         </NavLink>
-
-        <button
-          onClick={toggleMode}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '9px 12px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            width: '100%',
-          }}
-        >
-          <i className={`ti ${mode === 'dark' ? 'ti-sun' : 'ti-moon'}`} style={{ fontSize: '17px' }} aria-hidden="true" />
+        <button onClick={toggleMode} className="nav-link">
+          <i className={`ti ${mode === 'dark' ? 'ti-sun' : 'ti-moon'}`} aria-hidden="true" />
           {mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}
         </button>
 
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 12px',
-          marginTop: '4px',
-          borderTop: '0.5px solid var(--border)',
-          paddingTop: '12px',
-        }}>
-          <Avatar name={user?.name} photoUrl={user?.profilePhoto} size={30} />
+        <div className="user-chip">
+          <Avatar name={user?.name} photoUrl={user?.profilePhoto} size={34} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.name}
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--text-tertiary)' }}>PRO</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
+              {isRole(user?.role) ? ROLE_LABEL[user.role] : ''}
+            </div>
           </div>
-          <button
-            onClick={logout}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '2px' }}
-            title="Cerrar sesión"
-          >
-            <i className="ti ti-logout" style={{ fontSize: '16px' }} aria-hidden="true" />
+          <button onClick={logout} className="btn-icon" title="Cerrar sesión" aria-label="Cerrar sesión">
+            <i className="ti ti-logout" style={{ fontSize: '17px' }} aria-hidden="true" />
           </button>
         </div>
       </aside>

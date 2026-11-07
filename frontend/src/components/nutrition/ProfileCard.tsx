@@ -86,7 +86,7 @@ function ProfileForm({ data, onDone }: { data: NutritionProfileResponse | undefi
         {data?.profile && (
           <button type="button" onClick={onDone} style={secondaryButtonStyle}>Cancelar</button>
         )}
-        {save.isError && <span style={{ fontSize: '12px', color: '#E24B4A' }}>No se pudo guardar. Revisa los datos.</span>}
+        {save.isError && <span style={{ fontSize: '12px', color: 'var(--danger)' }}>No se pudo guardar. Revisa los datos.</span>}
       </div>
     </form>
   )
@@ -105,7 +105,7 @@ export default function ProfileCard() {
     <div style={cardStyle}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
         <div>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)' }}>Mis objetivos diarios</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Mis objetivos diarios</div>
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             {data?.profile
               ? `${GOAL_LABEL[data.profile.goal]} · gasto estimado ${targets?.tdee ?? '—'} kcal/día`

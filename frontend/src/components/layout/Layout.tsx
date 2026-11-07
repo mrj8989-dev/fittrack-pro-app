@@ -6,32 +6,31 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+    <div className="app-shell">
+      <div className="app-bg" aria-hidden="true">
+        <span className="blob b1" />
+        <span className="blob b2" />
+        <span className="blob b3" />
+        <span className="grid" />
+        <span className="grain" />
+      </div>
+
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <header style={{
-          display: 'none',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '12px 16px',
-          borderBottom: '0.5px solid var(--border)',
-          background: 'var(--bg-secondary)',
-        }}
-        className="mobile-header"
-        >
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', padding: '4px' }}
-          >
+      <div className="app-main">
+        <header className="topbar">
+          <button className="btn-icon" onClick={() => setSidebarOpen(true)} aria-label="Abrir menú">
             <i className="ti ti-menu-2" style={{ fontSize: '22px' }} aria-hidden="true" />
           </button>
-          <span style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)' }}>
-            Fit<span style={{ color: 'var(--accent-primary)' }}>Track</span>
-          </span>
+          <div className="brand" style={{ padding: 0 }}>
+            <span className="brand-mark" style={{ width: '28px', height: '28px', fontSize: '16px' }}>
+              <i className="ti ti-bolt" aria-hidden="true" />
+            </span>
+            <span className="brand-name" style={{ fontSize: '16px' }}>Fit<span>Track</span></span>
+          </div>
         </header>
 
-        <main style={{ flex: 1, padding: '1.5rem', overflow: 'auto' }}>
+        <main className="app-content">
           <Outlet />
         </main>
       </div>

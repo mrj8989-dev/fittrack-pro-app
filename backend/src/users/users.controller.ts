@@ -37,12 +37,12 @@ export class UsersController {
   }
 
   @Post('clients')
-  @ApiOperation({ summary: 'Asignar un cliente existente (por email) al entrenador autenticado' })
+  @ApiOperation({ summary: 'Añadir un cliente a la cartera: lo asigna si ya existe o lo da de alta con nombre y contraseña' })
   assignClient(
     @Body() dto: AssignClientDto,
     @CurrentUser() user: any,
   ) {
-    return this.usersService.assignClient(dto.email, user.id);
+    return this.usersService.assignClient(dto, user.id);
   }
 
   @Delete('clients/:clientId')

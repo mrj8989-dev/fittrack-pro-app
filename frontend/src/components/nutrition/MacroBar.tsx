@@ -6,7 +6,7 @@ export function MacroBar({ label, value, target, unit }: { label: string; value:
   const tolerance = target ? target * 0.05 : 0
   const color = !target ? 'var(--accent-primary)'
     : Math.abs(diff) <= tolerance ? 'var(--accent-primary)'
-    : diff < 0 ? '#E0A030' : '#E24B4A'
+    : diff < 0 ? 'var(--warning)' : 'var(--danger)'
 
   return (
     <div style={{ minWidth: 0 }}>
@@ -16,8 +16,8 @@ export function MacroBar({ label, value, target, unit }: { label: string; value:
           {value}{target ? ` / ${target}` : ''} {unit}
         </span>
       </div>
-      <div style={{ height: '6px', borderRadius: '3px', background: 'var(--bg-primary)', overflow: 'hidden' }}>
-        <div style={{ width: `${target ? pct : 100}%`, height: '100%', background: color, transition: 'width 0.2s' }} />
+      <div className="progress">
+        <div style={{ width: `${target ? pct : 100}%`, background: color }} />
       </div>
     </div>
   )

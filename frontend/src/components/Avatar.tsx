@@ -30,11 +30,11 @@ export default function Avatar({ name, photoUrl, size = 32 }: { name?: string; p
   return (
     <div style={{
       ...commonStyle,
-      background: 'var(--accent-dark)',
+      background: 'var(--accent-gradient)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontSize: `${Math.max(10, size * 0.38)}px`,
       color: '#fff',
-      fontWeight: 500,
+      fontWeight: 600,
     }}>
       {getInitials(name)}
     </div>

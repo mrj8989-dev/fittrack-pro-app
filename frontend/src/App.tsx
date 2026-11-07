@@ -12,6 +12,7 @@ import TrainerPage from './pages/TrainerPage'
 import ExercisesPage from './pages/ExercisesPage'
 import ChatPage from './pages/ChatPage'
 import NutritionPage from './pages/NutritionPage'
+import AdminPage from './pages/AdminPage'
 import { canAccess, homePathFor } from './lib/roleAccess'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="entrenador" element={<RoleRoute path="/entrenador"><TrainerPage /></RoleRoute>} />
         <Route path="ejercicios" element={<RoleRoute path="/ejercicios"><ExercisesPage /></RoleRoute>} />
         <Route path="chat" element={<RoleRoute path="/chat"><ChatPage /></RoleRoute>} />
+        <Route path="admin" element={<RoleRoute path="/admin"><AdminPage /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/landing" replace />} />
     </Routes>
