@@ -104,7 +104,7 @@ export class WorkoutsService {
 
   /** Un workout es accesible por el dueño del plan al que pertenece, o por su entrenador asignado. */
   private canAccess(planOwnerId: string, planOwnerTrainerId: string | null, user: AuthUser) {
-    if (planOwnerId === user.id) return true;
+    if (planOwnerId === user.id || user.role === Role.ADMIN) return true;
     return user.role === Role.TRAINER && planOwnerTrainerId === user.id;
   }
 }

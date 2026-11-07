@@ -3,42 +3,11 @@ import { useWorkoutSessions, usePersonalRecords } from '../hooks/useWorkoutSessi
 import { useWorkoutPlans } from '../hooks/useWorkoutPlans'
 import { useNextRevision, useWeightProgress } from '../hooks/useBodyRevisions'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { Link } from 'react-router-dom'
+import { EmptyState, Loader, ProgressBar, StatCard } from '../components/ui'
+import { chartTooltipStyle } from '../lib/chart'
 
-function MetricCard({ label, value, delta, deltaPositive }: {
-  label: string
-  value: string
-  delta?: string
-  deltaPositive?: boolean
-}) {
-  return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      border: '0.5px solid var(--border)',
-      borderRadius: '12px',
-      padding: '1rem 1.25rem',
-    }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text-primary)' }}>
-        {value}
-      </div>
-      {delta && (
-        <div style={{ fontSize: '12px', color: deltaPositive !== false ? 'var(--accent-primary)' : '#E24B4A', marginTop: '4px' }}>
-          {delta}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '12px' }}>
-      {children}
-    </h2>
-  )
-}
+const DAY_SHORT = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -96,226 +65,156 @@ export default function DashboardPage() {
 
   const isLoading = loadingSessions || loadingRecords || loadingPlans
 
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-        <div style={{ color: 'var(--accent-primary)', fontSize: '14px' }}>Cargando dashboard...</div>
-      </div>
-    )
-  }
+  if (isLoading) return <Loader label="Cargando dashboard..." />
+
+  const volumeData = weeklyVolume()
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-
-      {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '8px' }}>
-        <div>
-          <h1 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            {greeting()}, {user?.name?.split(' ')[0]} 💪
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-            {plans.length > 0 ? `Plan activo: ${plans[0].name}` : 'Sin plan activo todavía'}
-          </p>
-        </div>
-        {sessions.length > 0 && (
-          <div style={{
-            background: 'var(--accent-primary)',
-            color: '#fff',
-            fontSize: '12px',
-            padding: '6px 14px',
-            borderRadius: '20px',
-            fontWeight: 500,
-          }}>
-            {sessionsThisMonth} sesiones este mes
+    <div className="page" style={{ maxWidth: '1200px' }}>
+      <section className="hero" style={{ '--hero-img': 'url(https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1600&q=80)' } as React.CSSProperties}>
+        <div className="hero-content">
+          <div className="page-eyebrow" style={{ color: 'var(--accent-light)' }}>
+            <i className="ti ti-sparkles" aria-hidden="true" /> {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
-        )}
-      </div>
+          <h1 className="hero-title">{greeting()}, {user?.name?.split(' ')[0]} 👋</h1>
+          <p className="hero-subtitle">
+            {plans.length > 0 ? <>Plan activo: <strong style={{ color: '#fff' }}>{plans[0].name}</strong></> : 'Sin plan activo todavía'}
+          </p>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '1.25rem', alignItems: 'center' }}>
+            <Link to="/workout" className="btn btn-primary"><i className="ti ti-player-play-filled" aria-hidden="true" /> Empezar a entrenar</Link>
+            {sessions.length > 0 && (
+              <span className="badge" style={{ height: '38px', padding: '0 14px', fontSize: '12px' }}>
+                <i className="ti ti-flame" aria-hidden="true" /> {sessionsThisMonth} sesiones este mes
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* MÉTRICAS */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-        gap: '12px',
-        marginBottom: '1.5rem',
-      }}>
-        <MetricCard
+      <div className="grid-auto" style={{ '--min': '190px', marginBottom: '14px' } as React.CSSProperties}>
+        <StatCard
+          icon="ti-scale"
           label="Peso actual"
-          value={lastWeight ? `${lastWeight} kg` : '— kg'}
-          delta={lastWeight ? `→ objetivo 70 kg` : 'Sin revisiones'}
+          value={lastWeight ? `${lastWeight} kg` : '—'}
+          sub={lastWeight ? 'última revisión' : 'Sin revisiones'}
         />
-        <MetricCard
-          label="Sesiones"
-          value={String(sessionsThisMonth)}
-          delta="este mes"
-        />
-        <MetricCard
+        <StatCard icon="ti-calendar-check" label="Sesiones" value={sessionsThisMonth} sub="este mes" />
+        <StatCard
+          icon="ti-barbell"
           label="Volumen total"
-          value={volumeThisMonth > 0 ? `${(volumeThisMonth / 1000).toFixed(1)}t` : '0 kg'}
-          delta="este mes"
+          value={volumeThisMonth > 0 ? `${(volumeThisMonth / 1000).toFixed(1)} t` : '0 kg'}
+          sub="este mes"
         />
-        <MetricCard
+        <StatCard
+          icon="ti-camera"
           label="Próx. revisión"
-          value={nextRevision ? `${nextRevision.daysUntilRevision}d` : '—'}
-          delta={nextRevision ? new Date(nextRevision.nextRevisionDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : ''}
+          value={nextRevision ? `${nextRevision.daysUntilRevision} días` : '—'}
+          sub={nextRevision ? new Date(nextRevision.nextRevisionDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : ''}
+          tone={nextRevision && nextRevision.daysUntilRevision <= 0 ? 'negative' : undefined}
         />
       </div>
 
       {/* GRÁFICAS */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '12px',
-        marginBottom: '1.5rem',
-      }}>
-
-        {/* Volumen semanal */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '0.5px solid var(--border)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-        }}>
-          <SectionTitle>Volumen semanal (kg)</SectionTitle>
-          {weeklyVolume().length > 0 ? (
-            <ResponsiveContainer width="100%" height={160}>
-              <BarChart data={weeklyVolume()} barSize={20}>
+      <div className="grid-auto" style={{ '--min': '320px', marginBottom: '14px' } as React.CSSProperties}>
+        <div className="card">
+          <h2 className="section-title"><i className="ti ti-chart-bar" aria-hidden="true" /> Volumen semanal</h2>
+          {volumeData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={volumeData} barSize={22}>
+                <defs>
+                  <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--accent-light)" />
+                    <stop offset="100%" stopColor="var(--accent-primary)" />
+                  </linearGradient>
+                </defs>
                 <XAxis dataKey="week" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                 <YAxis hide />
-                <Tooltip
-                  contentStyle={{ background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
-                  formatter={(v: any) => [`${v} kg`, 'Volumen']}
-                />
-                <Bar dataKey="volume" fill="var(--accent-primary)" radius={[4, 4, 0, 0]} opacity={0.9} />
+                <Tooltip cursor={{ fill: 'var(--bg-hover)' }} contentStyle={chartTooltipStyle} formatter={(v: any) => [`${v} kg`, 'Volumen']} />
+                <Bar dataKey="volume" fill="url(#volGrad)" radius={[6, 6, 2, 2]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
-              Registra sesiones para ver el volumen
-            </div>
+            <EmptyState icon="ti-chart-bar" title="Sin datos todavía">Registra sesiones para ver tu volumen semanal</EmptyState>
           )}
         </div>
 
-        {/* Peso corporal */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '0.5px solid var(--border)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-        }}>
-          <SectionTitle>Evolución del peso (kg)</SectionTitle>
+        <div className="card">
+          <h2 className="section-title"><i className="ti ti-trending-down" aria-hidden="true" /> Evolución del peso</h2>
           {weightProgress.length > 1 ? (
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer width="100%" height={180}>
               <AreaChart data={weightProgress.map((r: any) => ({
                 fecha: new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
                 peso: r.weight,
               }))}>
                 <defs>
                   <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.35} />
                     <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                 <YAxis hide domain={['dataMin - 1', 'dataMax + 1']} />
-                <Tooltip
-                  contentStyle={{ background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
-                  formatter={(v: any) => [`${v} kg`, 'Peso']}
-                />
-                <Area type="monotone" dataKey="peso" stroke="var(--accent-primary)" strokeWidth={2} fill="url(#weightGrad)" />
+                <Tooltip contentStyle={chartTooltipStyle} formatter={(v: any) => [`${v} kg`, 'Peso']} />
+                <Area type="monotone" dataKey="peso" stroke="var(--accent-primary)" strokeWidth={2.5} fill="url(#weightGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ height: '160px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
-              Añade revisiones para ver tu evolución
-            </div>
+            <EmptyState icon="ti-scale" title="Sin evolución todavía">Añade revisiones para ver tu progreso de peso</EmptyState>
           )}
         </div>
       </div>
 
       {/* RÉCORDS + PLAN */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-        gap: '12px',
-      }}>
-
-        {/* Récords personales */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '0.5px solid var(--border)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-        }}>
-          <SectionTitle>Récords personales</SectionTitle>
+      <div className="grid-auto" style={{ '--min': '320px' } as React.CSSProperties}>
+        <div className="card">
+          <h2 className="section-title"><i className="ti ti-trophy" aria-hidden="true" /> Récords personales</h2>
           {records.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {records.slice(0, 5).map((record: any) => {
                 const maxWeight = Math.max(...records.map((r: any) => r.maxWeight || 0))
                 const pct = maxWeight > 0 ? ((record.maxWeight || 0) / maxWeight) * 100 : 0
                 return (
                   <div key={record.exerciseId}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '5px' }}>
-                      <span style={{ color: 'var(--text-secondary)' }}>
-                        {record.exerciseName || `Ejercicio`}
-                      </span>
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
-                        {record.maxWeight} kg × {record.reps} reps
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', gap: '8px' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>{record.exerciseName || 'Ejercicio'}</span>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                        {record.maxWeight} kg × {record.reps}
                       </span>
                     </div>
-                    <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px' }}>
-                      <div style={{ height: '4px', width: `${pct}%`, background: 'var(--accent-primary)', borderRadius: '2px', transition: 'width 0.5s' }} />
-                    </div>
+                    <ProgressBar value={pct} />
                   </div>
                 )
               })}
             </div>
           ) : (
-            <div style={{ color: 'var(--text-tertiary)', fontSize: '13px', padding: '1rem 0' }}>
-              Registra sesiones para ver tus récords
-            </div>
+            <EmptyState icon="ti-trophy" title="Aún no hay récords">Registra sesiones para ver tus récords</EmptyState>
           )}
         </div>
 
-        {/* Plan activo */}
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '0.5px solid var(--border)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-        }}>
-          <SectionTitle>Plan activo</SectionTitle>
+        <div className="card">
+          <h2 className="section-title"><i className="ti ti-calendar-week" aria-hidden="true" /> Plan activo</h2>
           {plans.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
                 {plans[0].name}
               </div>
               {plans[0].workouts?.map((workout: any) => (
-                <div key={workout.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '8px 12px',
-                  background: 'var(--bg-primary)',
-                  borderRadius: '8px',
-                }}>
-                  <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: 'var(--accent-primary)', flexShrink: 0,
-                  }} />
-                  <span style={{ fontSize: '13px', color: 'var(--text-primary)', flex: 1 }}>
+                <div key={workout.id} className="inset" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px' }}>
+                  <span className="badge badge-accent" style={{ minWidth: '44px', justifyContent: 'center' }}>
+                    {DAY_SHORT[workout.dayOfWeek || 0] || '—'}
+                  </span>
+                  <span style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', flex: 1 }}>
                     {workout.name}
                   </span>
-                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-                    {['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][workout.dayOfWeek || 0]}
-                  </span>
+                  <i className="ti ti-chevron-right" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
                 </div>
               ))}
             </div>
           ) : (
-            <div style={{ color: 'var(--text-tertiary)', fontSize: '13px', padding: '1rem 0' }}>
-              No tienes ningún plan activo
-            </div>
+            <EmptyState icon="ti-calendar-off" title="Sin plan activo">Tu entrenador te asignará uno pronto</EmptyState>
           )}
         </div>
-
       </div>
     </div>
   )

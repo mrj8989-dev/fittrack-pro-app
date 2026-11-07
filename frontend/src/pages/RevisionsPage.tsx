@@ -5,19 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useBodyRevisions, useNextRevision, useWeightProgress } from '../hooks/useBodyRevisions'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
-import api from '../lib/api'
-
-    // RevisionsPage
-    //     ↓ llama
-    // useBodyRevisions()      ← hook con React Query
-    //     ↓ llama
-    // api.get('/body-revisions')   ← Axios con JWT automático
-    //     ↓ llama
-    // Backend NestJS               ← endpoint GET /body-revisions
-    //     ↓ llama
-    // Prisma → PostgreSQL          ← devuelve los datos
-    //     ↓ sube
-    // RevisionsPage recibe data y renderiza
+import api, { API_BASE_URL } from '../lib/api'
+import { chartTooltipStyle } from '../lib/chart'
+import { EmptyState, Loader, PageHeader } from '../components/ui'
 
 const schema = z.object({
   weight: z.coerce.number().min(30).max(300),
@@ -34,26 +24,17 @@ type FormData = z.infer<typeof schema>
 function InputField({ label, name, register, placeholder, error }: any) {
   return (
     <div>
-      <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-        {label}
-      </label>
+      <label className="label" htmlFor={`rev-${name}`}>{label}</label>
       <input
+        id={`rev-${name}`}
         {...register(name)}
         type="number"
         step="0.1"
+        inputMode="decimal"
         placeholder={placeholder}
-        style={{
-          width: '100%',
-          padding: '10px 12px',
-          background: 'var(--bg-primary)',
-          border: `0.5px solid ${error ? '#E24B4A' : 'var(--border)'}`,
-          borderRadius: '8px',
-          color: 'var(--text-primary)',
-          fontSize: '14px',
-          outline: 'none',
-        }}
+        className={`input${error ? ' invalid' : ''}`}
       />
-      {error && <p style={{ fontSize: '12px', color: '#E24B4A', marginTop: '4px' }}>{error.message}</p>}
+      {error && <p className="field-error">{error.message}</p>}
     </div>
   )
 }
@@ -132,82 +113,58 @@ export default function RevisionsPage() {
     : null
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-
-      {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '8px' }}>
-        <div>
-          <h1 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            Revisiones corporales
-          </h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-            Seguimiento de peso, medidas y progreso físico
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            padding: '10px 16px',
-            background: 'var(--accent-primary)',
-            color: '#fff', border: 'none',
-            borderRadius: '10px', fontSize: '13px',
-            fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          <i className="ti ti-plus" style={{ fontSize: '16px' }} aria-hidden="true" />
-          Nueva revisión
-        </button>
-      </div>
+    <div className="page" style={{ maxWidth: '1200px' }}>
+      <PageHeader
+        eyebrow={<><i className="ti ti-camera" aria-hidden="true" /> Revisiones</>}
+        title="Revisiones corporales"
+        subtitle="Seguimiento de peso, medidas y progreso físico"
+        actions={
+          <button onClick={() => setShowForm(!showForm)} className={`btn ${showForm ? 'btn-secondary' : 'btn-primary'}`}>
+            <i className={`ti ${showForm ? 'ti-x' : 'ti-plus'}`} aria-hidden="true" />
+            {showForm ? 'Cerrar' : 'Nueva revisión'}
+          </button>
+        }
+      />
 
       {/* PRÓXIMA REVISIÓN */}
       {nextRevision && (
-        <div style={{
-          background: `linear-gradient(135deg, var(--accent-dark) 0%, var(--accent-primary) 100%)`,
-          borderRadius: '12px',
-          padding: '1.25rem',
-          marginBottom: '1.5rem',
+        <div className="card" style={{
+          background: 'var(--accent-gradient)',
+          border: 'none',
+          marginBottom: '14px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          flexWrap: 'wrap', gap: '8px',
+          flexWrap: 'wrap', gap: '16px',
+          color: '#fff',
+          overflow: 'hidden',
         }}>
-          <div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>
-              Próxima revisión
-            </div>
-            <div style={{ fontSize: '20px', fontWeight: 500, color: '#fff' }}>
-              {new Date(nextRevision.nextRevisionDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
-            </div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>
-              {nextRevision.daysUntilRevision === 0
-                ? '¡Hoy toca revisión!'
-                : `en ${nextRevision.daysUntilRevision} días`}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <span className="icon-tile lg" style={{ background: 'rgba(255,255,255,0.18)', color: '#fff' }}>
+              <i className="ti ti-calendar-event" aria-hidden="true" />
+            </span>
+            <div>
+              <div style={{ fontSize: '12px', fontWeight: 500, opacity: 0.8 }}>Próxima revisión</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }}>
+                {new Date(nextRevision.nextRevisionDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </div>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>
-              Intervalo configurado
-            </div>
-            <div style={{ fontSize: '18px', fontWeight: 500, color: '#fff' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <span className="badge" style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', borderColor: 'transparent', height: '28px', padding: '0 12px' }}>
+              {nextRevision.daysUntilRevision <= 0 ? '¡Hoy toca revisión!' : `en ${nextRevision.daysUntilRevision} días`}
+            </span>
+            <span className="badge" style={{ background: 'rgba(0,0,0,0.15)', color: '#fff', borderColor: 'transparent', height: '28px', padding: '0 12px' }}>
               cada {nextRevision.revisionInterval} días
-            </div>
+            </span>
           </div>
         </div>
       )}
 
       {/* FORMULARIO */}
       {showForm && (
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '0.5px solid var(--accent-primary)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          marginBottom: '1.5rem',
-        }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '1.25rem' }}>
-            Nueva revisión
-          </h2>
+        <div className="card card-accent" style={{ marginBottom: '14px', padding: '1.5rem' }}>
+          <h2 className="section-title"><i className="ti ti-clipboard-plus" aria-hidden="true" /> Nueva revisión</h2>
           <form onSubmit={handleSubmit(d => createRevision.mutate(d))}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '14px' }}>
               <InputField label="Peso (kg) *" name="weight" register={register} placeholder="70.5" error={errors.weight} />
               <InputField label="% Grasa corporal" name="bodyFat" register={register} placeholder="15.0" error={errors.bodyFat} />
               <InputField label="Pecho (cm)" name="chestCm" register={register} placeholder="95" error={errors.chestCm} />
@@ -215,28 +172,18 @@ export default function RevisionsPage() {
               <InputField label="Brazos (cm)" name="armsCm" register={register} placeholder="35" error={errors.armsCm} />
               <InputField label="Piernas (cm)" name="legsCm" register={register} placeholder="55" error={errors.legsCm} />
             </div>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                Notas
-              </label>
+            <div style={{ marginBottom: '14px' }}>
+              <label className="label" htmlFor="rev-notes">Notas</label>
               <textarea
+                id="rev-notes"
                 {...register('notes')}
                 placeholder="¿Cómo te has sentido esta semana? ¿Cambios notables?..."
                 rows={2}
-                style={{
-                  width: '100%', padding: '10px 12px',
-                  background: 'var(--bg-primary)',
-                  border: '0.5px solid var(--border)',
-                  borderRadius: '8px',
-                  color: 'var(--text-primary)',
-                  fontSize: '14px', outline: 'none', resize: 'vertical',
-                }}
+                className="input"
               />
             </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                Fotos (opcional)
-              </label>
+            <div style={{ marginBottom: '18px' }}>
+              <span className="label">Fotos (opcional)</span>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
                 {PHOTO_FIELDS.map(({ key, label }) => {
                   const file = photos[key]
@@ -246,26 +193,23 @@ export default function RevisionsPage() {
                         htmlFor={key}
                         style={{
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                          gap: '4px',
-                          height: '90px',
+                          gap: '6px',
+                          height: '120px',
                           background: 'var(--bg-primary)',
-                          border: `0.5px dashed var(--border)`,
-                          borderRadius: '8px',
+                          border: `1.5px dashed ${file ? 'var(--accent-primary)' : 'var(--border-strong)'}`,
+                          borderRadius: '12px',
                           cursor: 'pointer',
                           overflow: 'hidden',
                           position: 'relative',
+                          transition: 'border-color 0.15s',
                         }}
                       >
                         {file ? (
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={label}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
+                          <img src={URL.createObjectURL(file)} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <>
-                            <i className="ti ti-camera" style={{ fontSize: '20px', color: 'var(--text-tertiary)' }} aria-hidden="true" />
-                            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{label}</span>
+                            <span className="icon-tile"><i className="ti ti-photo-plus" aria-hidden="true" /></span>
+                            <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)' }}>{label}</span>
                           </>
                         )}
                       </label>
@@ -283,13 +227,10 @@ export default function RevisionsPage() {
                         <button
                           type="button"
                           onClick={() => setPhotos(prev => ({ ...prev, [key]: undefined }))}
-                          style={{
-                            marginTop: '4px', width: '100%',
-                            background: 'none', border: 'none', cursor: 'pointer',
-                            fontSize: '11px', color: 'var(--text-tertiary)', padding: '2px',
-                          }}
+                          className="btn btn-ghost btn-sm btn-block"
+                          style={{ marginTop: '4px' }}
                         >
-                          Quitar {label.toLowerCase()}
+                          <i className="ti ti-x" aria-hidden="true" /> Quitar {label.toLowerCase()}
                         </button>
                       )}
                     </div>
@@ -297,31 +238,12 @@ export default function RevisionsPage() {
                 })}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="submit"
-                disabled={createRevision.isPending}
-                style={{
-                  padding: '10px 20px',
-                  background: 'var(--accent-primary)',
-                  color: '#fff', border: 'none',
-                  borderRadius: '8px', fontSize: '13px',
-                  fontWeight: 500, cursor: 'pointer',
-                }}
-              >
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button type="submit" disabled={createRevision.isPending} className="btn btn-primary">
+                <i className="ti ti-device-floppy" aria-hidden="true" />
                 {createRevision.isPending ? 'Guardando...' : 'Guardar revisión'}
               </button>
-              <button
-                type="button"
-                onClick={() => { setShowForm(false); reset(); setPhotos({}) }}
-                style={{
-                  padding: '10px 20px',
-                  background: 'transparent',
-                  color: 'var(--text-secondary)',
-                  border: '0.5px solid var(--border)',
-                  borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
-                }}
-              >
+              <button type="button" onClick={() => { setShowForm(false); reset(); setPhotos({}) }} className="btn btn-secondary">
                 Cancelar
               </button>
             </div>
@@ -331,31 +253,22 @@ export default function RevisionsPage() {
 
       {/* STATS RÁPIDAS */}
       {revisions.length > 0 && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '12px',
-          marginBottom: '1.5rem',
-        }}>
+        <div className="grid-auto" style={{ '--min': '150px', marginBottom: '14px' } as React.CSSProperties}>
           {[
-            { label: 'Peso actual', value: `${lastRevision?.weight} kg`, delta: weightChange ? `${Number(weightChange) >= 0 ? '+' : ''}${weightChange} kg total` : '' },
-            { label: '% Grasa', value: lastRevision?.bodyFat ? `${lastRevision.bodyFat}%` : '—' },
-            { label: 'Pecho', value: lastRevision?.chestCm ? `${lastRevision.chestCm} cm` : '—' },
-            { label: 'Cintura', value: lastRevision?.waistCm ? `${lastRevision.waistCm} cm` : '—' },
-            { label: 'Brazos', value: lastRevision?.armsCm ? `${lastRevision.armsCm} cm` : '—' },
-            { label: 'Piernas', value: lastRevision?.legsCm ? `${lastRevision.legsCm} cm` : '—' },
+            { label: 'Peso actual', icon: 'ti-scale', value: `${lastRevision?.weight} kg`, delta: weightChange ? `${Number(weightChange) >= 0 ? '+' : ''}${weightChange} kg total` : '' },
+            { label: '% Grasa', icon: 'ti-droplet', value: lastRevision?.bodyFat ? `${lastRevision.bodyFat}%` : '—' },
+            { label: 'Pecho', icon: 'ti-ruler-measure', value: lastRevision?.chestCm ? `${lastRevision.chestCm} cm` : '—' },
+            { label: 'Cintura', icon: 'ti-ruler-measure', value: lastRevision?.waistCm ? `${lastRevision.waistCm} cm` : '—' },
+            { label: 'Brazos', icon: 'ti-ruler-measure', value: lastRevision?.armsCm ? `${lastRevision.armsCm} cm` : '—' },
+            { label: 'Piernas', icon: 'ti-ruler-measure', value: lastRevision?.legsCm ? `${lastRevision.legsCm} cm` : '—' },
           ].map(stat => (
-            <div key={stat.label} style={{
-              background: 'var(--bg-secondary)',
-              border: '0.5px solid var(--border)',
-              borderRadius: '12px',
-              padding: '1rem',
-            }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                {stat.label}
+            <div key={stat.label} className="card stat" style={{ padding: '1rem' }}>
+              <div className="stat-head" style={{ marginBottom: '6px' }}>
+                <span className="stat-label">{stat.label}</span>
+                <i className={`ti ${stat.icon}`} style={{ color: 'var(--text-tertiary)', fontSize: '16px' }} aria-hidden="true" />
               </div>
-              <div style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-primary)' }}>{stat.value}</div>
-              {stat.delta && <div style={{ fontSize: '11px', color: Number(weightChange) >= 0 ? 'var(--accent-primary)' : '#E24B4A', marginTop: '3px' }}>{stat.delta}</div>}
+              <div className="stat-value" style={{ fontSize: '22px' }}>{stat.value}</div>
+              {stat.delta && <div className={`stat-sub ${Number(weightChange) >= 0 ? 'positive' : 'negative'}`}>{stat.delta}</div>}
             </div>
           ))}
         </div>
@@ -363,59 +276,37 @@ export default function RevisionsPage() {
 
       {/* GRÁFICA EVOLUCIÓN */}
       {weightProgress.length > 1 && (
-        <div style={{
-          background: 'var(--bg-secondary)',
-          border: '0.5px solid var(--border)',
-          borderRadius: '12px',
-          padding: '1.25rem',
-          marginBottom: '1.5rem',
-        }}>
-          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-            Evolución del peso
-          </div>
-          <ResponsiveContainer width="100%" height={180}>
+        <div className="card" style={{ marginBottom: '1.75rem' }}>
+          <h2 className="section-title"><i className="ti ti-trending-down" aria-hidden="true" /> Evolución del peso</h2>
+          <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData}>
               <defs>
-                <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.3} />
+                <linearGradient id="revWeightGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.35} />
                   <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} domain={['dataMin - 1', 'dataMax + 1']} />
-              <Tooltip
-                contentStyle={{ background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
-                formatter={(v: any) => [`${v} kg`, 'Peso']}
-              />
-              <Area type="monotone" dataKey="peso" stroke="var(--accent-primary)" strokeWidth={2} fill="url(#weightGrad)" />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} domain={['dataMin - 1', 'dataMax + 1']} width={36} />
+              <Tooltip contentStyle={chartTooltipStyle} formatter={(v: any) => [`${v} kg`, 'Peso']} />
+              <Area type="monotone" dataKey="peso" stroke="var(--accent-primary)" strokeWidth={2.5} fill="url(#revWeightGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       )}
 
       {/* HISTORIAL */}
-      <div>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '1rem' }}>
-          Historial de revisiones
-        </h2>
+      <section>
+        <h2 className="section-title"><i className="ti ti-history" aria-hidden="true" /> Historial de revisiones</h2>
 
         {isLoading ? (
-          <div style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>Cargando...</div>
+          <Loader inline />
         ) : revisions.length === 0 ? (
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '12px',
-            padding: '2rem', textAlign: 'center',
-          }}>
-            <i className="ti ti-camera" style={{ fontSize: '32px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '8px' }} aria-hidden="true" />
-            <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              Aún no tienes revisiones
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-              Crea tu primera revisión para empezar a trackear tu evolución
-            </div>
+          <div className="card">
+            <EmptyState icon="ti-camera" title="Aún no tienes revisiones">
+              Crea tu primera revisión para empezar a seguir tu evolución
+            </EmptyState>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -424,44 +315,31 @@ export default function RevisionsPage() {
               const weightDiff = prev ? (revision.weight - prev.weight).toFixed(1) : null
 
               return (
-                <div key={revision.id} style={{
-                  background: 'var(--bg-secondary)',
-                  border: `0.5px solid ${index === 0 ? 'var(--accent-primary)' : 'var(--border)'}`,
-                  borderRadius: '12px',
-                  padding: '1.25rem',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {index === 0 && (
-                        <div style={{
-                          padding: '2px 10px',
-                          background: 'var(--accent-primary)',
-                          color: '#fff',
-                          borderRadius: '20px',
-                          fontSize: '11px',
-                          fontWeight: 500,
-                        }}>
-                          Última
-                        </div>
-                      )}
-                      <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
+                <div key={revision.id} className={`card${index === 0 ? ' card-accent' : ''}`}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
                         {new Date(revision.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </div>
+                      {index === 0 && <span className="badge badge-solid">Última</span>}
                       {weightDiff && (
-                        <div style={{ fontSize: '12px', color: Number(weightDiff) >= 0 ? 'var(--accent-primary)' : '#E24B4A' }}>
+                        <span className={`badge ${Number(weightDiff) >= 0 ? 'badge-accent' : 'badge-danger'}`}>
+                          <i className={`ti ${Number(weightDiff) >= 0 ? 'ti-arrow-up-right' : 'ti-arrow-down-right'}`} aria-hidden="true" />
                           {Number(weightDiff) >= 0 ? '+' : ''}{weightDiff} kg
-                        </div>
+                        </span>
                       )}
                     </div>
                     <button
                       onClick={() => deleteRevision.mutate(revision.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '2px' }}
+                      className="btn-icon"
+                      title="Eliminar revisión"
+                      aria-label="Eliminar revisión"
                     >
-                      <i className="ti ti-trash" style={{ fontSize: '16px' }} aria-hidden="true" />
+                      <i className="ti ti-trash" style={{ fontSize: '17px' }} aria-hidden="true" />
                     </button>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '10px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '12px' }}>
                     {[
                       { label: 'Peso', value: `${revision.weight} kg` },
                       revision.bodyFat && { label: 'Grasa', value: `${revision.bodyFat}%` },
@@ -470,60 +348,59 @@ export default function RevisionsPage() {
                       revision.armsCm && { label: 'Brazos', value: `${revision.armsCm} cm` },
                       revision.legsCm && { label: 'Piernas', value: `${revision.legsCm} cm` },
                     ].filter(Boolean).map((stat: any) => (
-                      <div key={stat.label}>
+                      <div key={stat.label} className="inset" style={{ padding: '8px 12px', minWidth: '84px' }}>
                         <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginBottom: '2px' }}>{stat.label}</div>
-                        <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{stat.value}</div>
+                        <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{stat.value}</div>
                       </div>
                     ))}
                   </div>
 
                   {revision.notes && (
                     <div style={{
-                      marginTop: '10px',
-                      padding: '8px 12px',
-                      background: 'var(--bg-primary)',
-                      borderRadius: '8px',
+                      marginTop: '12px',
+                      padding: '10px 14px',
+                      borderLeft: '3px solid var(--accent-primary)',
+                      background: 'var(--accent-softer)',
+                      borderRadius: '0 10px 10px 0',
                       fontSize: '13px',
                       color: 'var(--text-secondary)',
                       fontStyle: 'italic',
                     }}>
-                      "{revision.notes}"
+                      “{revision.notes}”
                     </div>
                   )}
 
                   {(revision.photoFront || revision.photoBack || revision.photoSide) && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                       {[
                         { url: revision.photoFront, label: 'Frontal' },
                         { url: revision.photoBack, label: 'Espalda' },
                         { url: revision.photoSide, label: 'Lateral' },
                       ].filter(p => p.url).map(photo => (
-                        <div
+                        <button
                           key={photo.label}
-                          onClick={() => setSelectedPhoto(`http://localhost:3000${photo.url}`)}
+                          type="button"
+                          onClick={() => setSelectedPhoto(`${API_BASE_URL}${photo.url}`)}
                           style={{
-                            width: '70px', height: '70px',
-                            borderRadius: '8px',
+                            width: '84px', height: '84px',
+                            padding: 0,
+                            borderRadius: '12px',
                             overflow: 'hidden',
-                            cursor: 'pointer',
-                            border: '0.5px solid var(--border)',
+                            border: '1px solid var(--border)',
                             position: 'relative',
+                            background: 'var(--bg-primary)',
                           }}
                         >
-                          <img
-                            src={`http://localhost:3000${photo.url}`}
-                            alt={photo.label}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                          <div style={{
+                          <img src={`${API_BASE_URL}${photo.url}`} alt={photo.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <span style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0,
-                            background: 'rgba(0,0,0,0.6)',
-                            fontSize: '9px', color: '#fff',
-                            textAlign: 'center', padding: '2px',
+                            background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+                            fontSize: '10px', fontWeight: 600, color: '#fff',
+                            textAlign: 'center', padding: '10px 2px 4px',
                           }}>
                             {photo.label}
-                          </div>
-                        </div>
+                          </span>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -532,7 +409,7 @@ export default function RevisionsPage() {
             })}
           </div>
         )}
-      </div>
+      </section>
 
       {/* LIGHTBOX FOTOS */}
       {selectedPhoto && (
@@ -540,16 +417,18 @@ export default function RevisionsPage() {
           onClick={() => setSelectedPhoto(null)}
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.9)',
+            background: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
             zIndex: 100,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
+            cursor: 'zoom-out',
+            animation: 'fade-up 0.2s var(--ease) both',
           }}
         >
           <img
             src={selectedPhoto}
             alt="Foto revisión"
-            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }}
+            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '16px', boxShadow: 'var(--shadow-lg)' }}
           />
         </div>
       )}

@@ -22,12 +22,12 @@ export class AuthService {
     // Hashear la contraseña antes de guardarla
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    // Crear el usuario en la BD
+    // Crear el usuario en la BD. El registro público siempre crea CLIENT;
+    // entrenadores y admins los da de alta un admin desde /admin/users.
     const user = await this.usersService.create({
       email: dto.email,
       password: hashedPassword,
       name: dto.name,
-      role: dto.role,
     });
 
     // Generar y devolver el token

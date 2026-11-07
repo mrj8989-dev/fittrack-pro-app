@@ -22,14 +22,14 @@ const features = [
     description: 'Fotos de progreso, medidas y % de grasa corporal. Comparativas visuales entre revisiones.',
   },
   {
-    icon: 'ti-clock',
-    title: 'Seguimiento de sesiones',
-    description: 'Registra cada entrenamiento en tiempo real. Historial completo con notas y duración.',
+    icon: 'ti-salad',
+    title: 'Nutrición a medida',
+    description: 'Calorías y macros según tu objetivo, con menús semanales e intercambios equivalentes.',
   },
   {
-    icon: 'ti-adjustments',
-    title: 'Totalmente personalizable',
-    description: 'Elige tu color de acento, modo oscuro o claro, e intervalo de revisiones a tu gusto.',
+    icon: 'ti-message-circle',
+    title: 'Tu entrenador, contigo',
+    description: 'Chat directo con tu entrenador, que ajusta tu plan y tus menús según tu evolución.',
   },
 ]
 
@@ -44,35 +44,24 @@ export default function LandingPage() {
   const navigate = useNavigate()
 
   return (
-    <div style={{ background: '#0a0e17', minHeight: '100vh', color: '#e6edf3' }}>
+    <div style={{ background: '#07090D', minHeight: '100vh', color: '#F1F4F8', overflowX: 'hidden' }}>
 
       {/* NAV */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '1rem 2rem',
-        background: 'rgba(10,14,23,0.8)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+        padding: '0.875rem clamp(1rem, 4vw, 2rem)',
+        background: 'rgba(7,9,13,0.7)',
+        backdropFilter: 'blur(16px) saturate(1.4)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <i className="ti ti-bolt" style={{ color: 'var(--accent-primary)', fontSize: '22px' }} aria-hidden="true" />
-          <span style={{ fontSize: '18px', fontWeight: 500 }}>
-            Fit<span style={{ color: 'var(--accent-primary)' }}>Track</span>
-          </span>
+        <div className="brand" style={{ padding: 0 }}>
+          <span className="brand-mark"><i className="ti ti-bolt" aria-hidden="true" /></span>
+          <span className="brand-name" style={{ color: '#fff' }}>Fit<span>Track</span></span>
         </div>
         <button
           onClick={() => navigate('/login')}
-          style={{
-            padding: '8px 20px',
-            background: 'var(--accent-primary)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
+          className="btn btn-primary"
         >
           Iniciar sesión
         </button>
@@ -97,7 +86,7 @@ export default function LandingPage() {
         }} />
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(180deg, rgba(10,14,23,0.3) 0%, rgba(10,14,23,0.95) 100%)',
+          background: 'linear-gradient(180deg, rgba(7,9,13,0.3) 0%, rgba(7,9,13,0.95) 100%)',
           zIndex: 1,
         }} />
 
@@ -109,8 +98,8 @@ export default function LandingPage() {
         }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '8px',
-            background: 'rgba(29,158,117,0.15)',
-            border: '0.5px solid rgba(29,158,117,0.4)',
+            background: 'var(--accent-soft)',
+            border: '1px solid var(--accent-ring)',
             borderRadius: '20px',
             padding: '6px 16px',
             fontSize: '12px',
@@ -122,14 +111,15 @@ export default function LandingPage() {
           </div>
 
           <h1 style={{
-            fontSize: 'clamp(2.5rem, 6vw, 4rem)',
-            fontWeight: 600,
-            lineHeight: 1.1,
+            fontSize: 'clamp(2.5rem, 6.5vw, 4.5rem)',
+            fontWeight: 800,
+            letterSpacing: '-0.035em',
+            lineHeight: 1.05,
             marginBottom: '1.5rem',
             color: '#fff',
           }}>
             Entrena con propósito.<br />
-            <span style={{ color: 'var(--accent-primary)' }}>Mide tu progreso.</span>
+            <span style={{ background: 'linear-gradient(90deg, var(--accent-light), var(--accent-primary))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>Mide tu progreso.</span>
           </h1>
 
           <p style={{
@@ -146,31 +136,16 @@ export default function LandingPage() {
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
               onClick={() => navigate('/login')}
-              style={{
-                padding: '14px 32px',
-                background: 'var(--accent-primary)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '10px',
-                fontSize: '15px',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
+              className="btn btn-primary btn-lg"
+              style={{ padding: '0 28px' }}
             >
               Empezar ahora
-              <i className="ti ti-arrow-right" style={{ marginLeft: '8px', fontSize: '16px', verticalAlign: '-2px' }} aria-hidden="true" />
+              <i className="ti ti-arrow-right" aria-hidden="true" />
             </button>
             <button
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-              style={{
-                padding: '14px 32px',
-                background: 'transparent',
-                color: 'rgba(255,255,255,0.7)',
-                border: '0.5px solid rgba(255,255,255,0.2)',
-                borderRadius: '10px',
-                fontSize: '15px',
-                cursor: 'pointer',
-              }}
+              className="btn btn-lg"
+              style={{ padding: '0 28px', background: 'rgba(255,255,255,0.06)', color: '#fff', borderColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)' }}
             >
               Ver más
             </button>
@@ -184,7 +159,7 @@ export default function LandingPage() {
         }}>
           {stats.map(stat => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '24px', fontWeight: 600, color: 'var(--accent-primary)' }}>{stat.value}</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontSize: '26px', fontWeight: 800, letterSpacing: '-0.02em', color: '#fff' }}>{stat.value}</div>
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{stat.label}</div>
             </div>
           ))}
@@ -194,7 +169,7 @@ export default function LandingPage() {
       {/* FEATURES */}
       <div id="features" style={{ padding: '5rem 2rem', maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', marginBottom: '1rem' }}>
             Todo lo que necesitas para progresar
           </h2>
           <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', maxWidth: '500px', margin: '0 auto' }}>
@@ -208,26 +183,19 @@ export default function LandingPage() {
           gap: '1rem',
         }}>
           {features.map(feature => (
-            <div key={feature.title} style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '0.5px solid rgba(255,255,255,0.08)',
-              borderRadius: '12px',
+            <div key={feature.title} className="card-interactive" style={{
+              background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '18px',
               padding: '1.5rem',
-              transition: 'border-color 0.2s',
             }}>
-              <div style={{
-                width: '40px', height: '40px',
-                background: 'rgba(29,158,117,0.15)',
-                borderRadius: '10px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                marginBottom: '1rem',
-              }}>
-                <i className={`ti ${feature.icon}`} style={{ fontSize: '20px', color: 'var(--accent-primary)' }} aria-hidden="true" />
-              </div>
-              <h3 style={{ fontSize: '15px', fontWeight: 500, color: '#fff', marginBottom: '8px' }}>
+              <span className="icon-tile lg" style={{ marginBottom: '1rem' }}>
+                <i className={`ti ${feature.icon}`} aria-hidden="true" />
+              </span>
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
                 {feature.title}
               </h3>
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>
                 {feature.description}
               </p>
             </div>
@@ -238,7 +206,7 @@ export default function LandingPage() {
       {/* DASHBOARD PREVIEW */}
       <div style={{ padding: '3rem 2rem 5rem', maxWidth: '1000px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', marginBottom: '1rem' }}>
             Diseñado para ser tuyo
           </h2>
           <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)' }}>
@@ -248,16 +216,17 @@ export default function LandingPage() {
 
         <div style={{
           background: 'rgba(255,255,255,0.03)',
-          border: '0.5px solid rgba(255,255,255,0.1)',
-          borderRadius: '16px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '20px',
           overflow: 'hidden',
           position: 'relative',
+          boxShadow: '0 40px 120px -40px color-mix(in srgb, var(--accent-primary) 45%, transparent)',
         }}>
           <div style={{
             background: 'rgba(255,255,255,0.05)',
             padding: '10px 16px',
             display: 'flex', alignItems: 'center', gap: '6px',
-            borderBottom: '0.5px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
           }}>
             {['#ff5f57', '#ffbd2e', '#28c840'].map(c => (
               <div key={c} style={{ width: '10px', height: '10px', borderRadius: '50%', background: c }} />
@@ -273,7 +242,7 @@ export default function LandingPage() {
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px', marginBottom: '1rem' }}>
               {[
-                { label: 'Peso actual', value: '62 kg', delta: '→ obj. 70kg' },
+                { label: 'Peso actual', value: '62 kg', delta: 'última revisión' },
                 { label: 'Sesiones', value: '8', delta: 'este mes' },
                 { label: 'Volumen', value: '14.2t', delta: '+18% vs anterior' },
                 { label: 'Próx. revisión', value: '14 días', delta: '24 Mayo' },
@@ -283,7 +252,7 @@ export default function LandingPage() {
                   borderRadius: '8px', padding: '12px',
                 }}>
                   <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</div>
-                  <div style={{ fontSize: '18px', fontWeight: 500, color: '#fff' }}>{m.value}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 700, color: '#fff' }}>{m.value}</div>
                   <div style={{ fontSize: '10px', color: 'var(--accent-primary)', marginTop: '2px' }}>{m.delta}</div>
                 </div>
               ))}
@@ -294,7 +263,7 @@ export default function LandingPage() {
                 <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '10px' }}>Volumen semanal</div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '60px' }}>
                   {[45, 55, 48, 65, 60, 75, 90].map((h, i) => (
-                    <div key={i} style={{ flex: 1, background: i === 6 ? 'var(--accent-primary)' : 'rgba(29,158,117,0.3)', borderRadius: '2px 2px 0 0', height: `${h}%` }} />
+                    <div key={i} style={{ flex: 1, background: i === 6 ? 'var(--accent-gradient)' : 'var(--accent-ring)', borderRadius: '4px 4px 1px 1px', height: `${h}%` }} />
                   ))}
                 </div>
               </div>
@@ -320,7 +289,7 @@ export default function LandingPage() {
 
           <div style={{
             position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px',
-            background: 'linear-gradient(transparent, #0a0e17)',
+            background: 'linear-gradient(transparent, #07090D)',
             pointerEvents: 'none',
           }} />
         </div>
@@ -330,29 +299,21 @@ export default function LandingPage() {
       <div style={{
         textAlign: 'center',
         padding: '4rem 2rem',
-        borderTop: '0.5px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <h2 style={{ fontSize: '2rem', fontWeight: 600, color: '#fff', marginBottom: '1rem' }}>
-          Listo para empezar?
+        <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.5rem)', fontWeight: 800, letterSpacing: '-0.03em', color: '#fff', marginBottom: '1rem' }}>
+          ¿Listo para empezar?
         </h2>
         <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', marginBottom: '2rem' }}>
           Tu progreso empieza hoy.
         </p>
         <button
           onClick={() => navigate('/login')}
-          style={{
-            padding: '14px 40px',
-            background: 'var(--accent-primary)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: '15px',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
+          className="btn btn-primary btn-lg"
+          style={{ padding: '0 36px' }}
         >
           Empezar ahora
-          <i className="ti ti-arrow-right" style={{ marginLeft: '8px', fontSize: '16px', verticalAlign: '-2px' }} aria-hidden="true" />
+          <i className="ti ti-arrow-right" aria-hidden="true" />
         </button>
       </div>
 
@@ -361,7 +322,7 @@ export default function LandingPage() {
         padding: '1.5rem',
         fontSize: '12px',
         color: 'rgba(255,255,255,0.2)',
-        borderTop: '0.5px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
       }}>
         FitTrack Pro · Tu progreso, tu historia
       </footer>

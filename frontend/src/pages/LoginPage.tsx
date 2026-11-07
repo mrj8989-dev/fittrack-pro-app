@@ -35,155 +35,91 @@ export default function LoginPage() {
     }
   }
 
-return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '1rem',
-      position: 'relative',
-      overflow: 'hidden',
-      background: '#0a0e17',
-    }}>
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: 'url(https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1920&q=80)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        filter: 'brightness(0.25)',
-        zIndex: 0,
-      }} />
-
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(15,110,86,0.3) 100%)',
-        zIndex: 1,
-      }} />
-
-      <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: '400px' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            marginBottom: '0.5rem',
-          }}>
-            <i className="ti ti-bolt" style={{ color: 'var(--accent-primary)', fontSize: '28px' }} aria-hidden="true" />
-            <span style={{ fontSize: '24px', fontWeight: 500, color: '#fff' }}>
-              Fit<span style={{ color: 'var(--accent-primary)' }}>Track</span>
-            </span>
+  return (
+    <div className="login-shell">
+      {/* Panel visual */}
+      <aside className="login-hero">
+        <div className="login-hero-img" />
+        <div className="login-hero-overlay" />
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div className="brand" style={{ padding: 0 }}>
+            <span className="brand-mark"><i className="ti ti-bolt" aria-hidden="true" /></span>
+            <span className="brand-name" style={{ color: '#fff' }}>Fit<span>Track</span></span>
           </div>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
-            Tu plataforma de entrenamiento personal
-          </p>
+          <div style={{ marginTop: 'auto', maxWidth: '440px' }}>
+            <h2 style={{ fontSize: 'clamp(28px, 3vw, 40px)', fontWeight: 800, color: '#fff', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
+              Tu progreso,<br />tu historia.
+            </h2>
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', marginTop: '14px', lineHeight: 1.6 }}>
+              Entrenamientos, nutrición y revisiones en un solo sitio, conectado con tu entrenador.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '22px', flexWrap: 'wrap' }}>
+              {['Sesiones en tiempo real', 'Menús semanales', 'Chat con tu entrenador'].map(t => (
+                <span key={t} className="badge" style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', borderColor: 'rgba(255,255,255,0.14)', height: '28px', padding: '0 12px' }}>
+                  <i className="ti ti-check" aria-hidden="true" /> {t}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
+      </aside>
 
-        <div style={{
-          background: 'rgba(22,27,34,0.85)',
-          backdropFilter: 'blur(12px)',
-          border: '0.5px solid rgba(255,255,255,0.1)',
-          borderRadius: '12px',
-          padding: '2rem',
-        }}>
-          <h1 style={{ fontSize: '18px', fontWeight: 500, marginBottom: '1.5rem', color: '#fff' }}>
-            Iniciar sesión
-          </h1>
+      {/* Formulario */}
+      <main className="login-form-wrap">
+        <div style={{ width: '100%', maxWidth: '380px', animation: 'fade-up 0.4s var(--ease) both' }}>
+          <div className="brand login-mobile-brand" style={{ padding: 0, marginBottom: '2rem' }}>
+            <span className="brand-mark"><i className="ti ti-bolt" aria-hidden="true" /></span>
+            <span className="brand-name">Fit<span>Track</span></span>
+          </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <h1 className="page-title">Bienvenido de nuevo</h1>
+          <p className="page-subtitle" style={{ marginBottom: '2rem' }}>Inicia sesión para continuar con tu entrenamiento</p>
+
+          <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }} noValidate>
             <div>
-              <label style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '6px' }}>
-                Email
-              </label>
+              <label className="label" htmlFor="email">Email</label>
               <input
+                id="email"
                 {...register('email')}
                 type="email"
+                autoComplete="email"
                 placeholder="tu@email.com"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: `0.5px solid ${errors.email ? '#E24B4A' : 'rgba(255,255,255,0.15)'}`,
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                }}
+                className={`input${errors.email ? ' invalid' : ''}`}
+                style={{ height: '44px' }}
               />
-              {errors.email && (
-                <p style={{ fontSize: '12px', color: '#E24B4A', marginTop: '4px' }}>
-                  {errors.email.message}
-                </p>
-              )}
+              {errors.email && <p className="field-error">{errors.email.message}</p>}
             </div>
 
             <div>
-              <label style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '6px' }}>
-                Contraseña
-              </label>
+              <label className="label" htmlFor="password">Contraseña</label>
               <input
+                id="password"
                 {...register('password')}
                 type="password"
+                autoComplete="current-password"
                 placeholder="••••••••"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  background: 'rgba(255,255,255,0.05)',
-                  border: `0.5px solid ${errors.password ? '#E24B4A' : 'rgba(255,255,255,0.15)'}`,
-                  borderRadius: '8px',
-                  color: '#fff',
-                  fontSize: '14px',
-                  outline: 'none',
-                }}
+                className={`input${errors.password ? ' invalid' : ''}`}
+                style={{ height: '44px' }}
               />
-              {errors.password && (
-                <p style={{ fontSize: '12px', color: '#E24B4A', marginTop: '4px' }}>
-                  {errors.password.message}
-                </p>
-              )}
+              {errors.password && <p className="field-error">{errors.password.message}</p>}
             </div>
 
             {error && (
-              <div style={{
-                padding: '10px 12px',
-                background: 'rgba(226,75,74,0.1)',
-                border: '0.5px solid #E24B4A',
-                borderRadius: '8px',
-                fontSize: '13px',
-                color: '#E24B4A',
-              }}>
-                {error}
+              <div className="alert alert-danger" role="alert">
+                <i className="ti ti-alert-circle" aria-hidden="true" /> {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '11px',
-                background: loading ? 'var(--accent-dark)' : 'var(--accent-primary)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background 0.15s',
-                marginTop: '0.5rem',
-              }}
-            >
-              {loading ? 'Entrando...' : 'Entrar'}
+            <button type="submit" disabled={loading} className="btn btn-primary btn-lg btn-block" style={{ marginTop: '0.5rem' }}>
+              {loading ? <><span className="spinner" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: '#fff' }} /> Entrando...</> : <>Entrar <i className="ti ti-arrow-right" aria-hidden="true" /></>}
             </button>
           </form>
-        </div>
 
-        <p style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '1.5rem' }}>
-          FitTrack Pro · Tu progreso, tu historia
-        </p>
-      </div>
+          <p style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2rem' }}>
+            FitTrack Pro · © {new Date().getFullYear()}
+          </p>
+        </div>
+      </main>
     </div>
   )
 }

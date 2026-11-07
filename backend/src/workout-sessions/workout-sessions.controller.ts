@@ -31,7 +31,7 @@ export class WorkoutSessionsController {
   }
 
   @Get()
-  @Roles(Role.CLIENT, Role.TRAINER)
+  @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
   @ApiOperation({ summary: 'Obtener historial de sesiones (propio, o de un cliente si eres su entrenador)' })
   @ApiQuery({ name: 'clientId', required: false })
   findAll(
@@ -42,7 +42,7 @@ export class WorkoutSessionsController {
   }
 
   @Get('records')
-  @Roles(Role.CLIENT, Role.TRAINER)
+  @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
   @ApiOperation({ summary: 'Obtener récords personales por ejercicio' })
   @ApiQuery({ name: 'clientId', required: false })
   getPersonalRecords(
@@ -53,7 +53,7 @@ export class WorkoutSessionsController {
   }
 
   @Get('progress')
-  @Roles(Role.CLIENT, Role.TRAINER)
+  @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
   @ApiOperation({ summary: 'Obtener progreso de un ejercicio a lo largo del tiempo' })
   @ApiQuery({ name: 'exerciseId', required: true })
   @ApiQuery({ name: 'clientId', required: false })

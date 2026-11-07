@@ -86,6 +86,12 @@ cd backend && node_modules/.bin/prisma studio
 - [x] Entrenador puede consultar el historial de sesiones y récords reales de sus clientes
 - [x] Chat entrenador ↔ cliente (mensajes con sondeo periódico, no leídos)
 - [x] Foto de perfil (subida propia, disponible para los 3 roles)
+- [x] **Nutrición**: catálogo común de alimentos (valores por 100 g en crudo) que amplían entrenadores y admin
+- [x] Objetivos diarios de kcal y macros según sexo, edad, altura, peso, actividad y objetivo (Mifflin-St Jeor)
+- [x] Menús semanales que diseñan entrenador y admin: de cero o copiando otros, con comidas y cantidades editables
+- [x] Intercambio equivalente de alimentos (p. ej. arroz → patata conservando los hidratos)
+- [x] Ajuste automático de un menú a unas kcal objetivo, día a día
+- [x] Plantillas de menú (globales del admin o propias del entrenador) asignables a clientes; el cliente sigue su menú y solo intercambia alimentos por equivalentes
 
 **Frontend**
 - [x] Landing page con hero, features y preview del dashboard
@@ -115,6 +121,8 @@ cd backend && node_modules/.bin/prisma studio
 - [x] Chat con avatares, agrupado de mensajes consecutivos y separadores de fecha (estilo WhatsApp)
 - [x] Foto de perfil en Ajustes, Sidebar, lista de clientes y chat
 - [x] Badge de mensajes sin leer en el Sidebar
+- [x] Página de nutrición del cliente: objetivos, menú asignado por días con barras de macros frente al objetivo e intercambio de alimentos equivalentes
+- [x] Nutrición para entrenador y admin: plantillas, asignación a clientes ajustada a sus kcal, edición de los menús de sus clientes y gestión del catálogo de alimentos
 
 ## 🔜 Próximamente
 
@@ -140,6 +148,7 @@ El seeder usa `upsert` — seguro ejecutarlo múltiples veces. Para añadir ejer
 **Datos incluidos:**
 - 24 ejercicios con descripción técnica y vídeo de referencia en español
 - Plan Upper/Lower de hipertrofia de 4 días para casa (barra + mancuernas)
+- 45 alimentos con kcal y macros por 100 g, dos plantillas de menú semanal de 4 comidas y un menú asignado al cliente demo
 - Un usuario demo por rol, todos con contraseña `demo1234` (solo para desarrollo local):
   - CLIENT (plan PRO, con rutina y entrenador asignado): `demo@fittrack.com`
   - TRAINER: `trainer@fittrack.com`

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useThread, useSendMessage } from '../hooks/useMessages'
 import Avatar from './Avatar'
+import { EmptyState, Loader } from './ui'
 
 function isSameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString()
@@ -46,18 +47,18 @@ export default function ChatThread({ otherUserId, otherUserName, otherUserPhoto 
   }
 
   return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      border: '0.5px solid var(--border)',
-      borderRadius: '12px',
+    <div className="card" style={{
       display: 'flex',
       flexDirection: 'column',
-      height: '520px',
+      height: 'min(620px, calc(100vh - 220px))',
+      minHeight: '420px',
+      padding: 0,
+      overflow: 'hidden',
     }}>
       {otherUserName && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', borderBottom: '0.5px solid var(--border)' }}>
-          <Avatar name={otherUserName} photoUrl={otherUserPhoto} size={30} />
-          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+          <Avatar name={otherUserName} photoUrl={otherUserPhoto} size={36} />
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
             {otherUserName}
           </div>
         </div>
@@ -65,10 +66,10 @@ export default function ChatThread({ otherUserId, otherUserName, otherUserPhoto 
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
         {isLoading ? (
-          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Cargando...</div>
+          <Loader inline />
         ) : messages.length === 0 ? (
-          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
-            Todavía no hay mensajes. Escribe el primero.
+          <div style={{ margin: 'auto' }}>
+            <EmptyState icon="ti-message-circle" title="Sin mensajes">Todavía no hay mensajes. Escribe el primero.</EmptyState>
           </div>
         ) : (
           messages.map((m: any, i: number) => {
@@ -87,7 +88,8 @@ export default function ChatThread({ otherUserId, otherUserName, otherUserPhoto 
                   <div style={{ display: 'flex', justifyContent: 'center', margin: '14px 0 10px' }}>
                     <span style={{
                       fontSize: '11px', color: 'var(--text-tertiary)',
-                      background: 'var(--bg-primary)', border: '0.5px solid var(--border)',
+                      fontWeight: 500,
+                      background: 'var(--bg-hover)',
                       borderRadius: '20px', padding: '3px 12px',
                     }}>
                       {formatDateLabel(date)}
@@ -108,14 +110,16 @@ export default function ChatThread({ otherUserId, otherUserName, otherUserPhoto 
                   )}
                   <div style={{
                     maxWidth: '70%',
-                    padding: '8px 12px',
-                    borderRadius: '14px',
-                    borderBottomRightRadius: isMine && isLastInGroup ? '4px' : '14px',
-                    borderBottomLeftRadius: !isMine && isLastInGroup ? '4px' : '14px',
-                    background: isMine ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                    border: isMine ? 'none' : '0.5px solid var(--border)',
+                    padding: '9px 13px',
+                    borderRadius: '16px',
+                    borderBottomRightRadius: isMine && isLastInGroup ? '4px' : '16px',
+                    borderBottomLeftRadius: !isMine && isLastInGroup ? '4px' : '16px',
+                    background: isMine ? 'var(--accent-gradient)' : 'var(--bg-elevated)',
+                    border: isMine ? 'none' : '1px solid var(--border)',
+                    boxShadow: isMine ? '0 6px 16px -10px var(--accent-primary)' : 'none',
                     color: isMine ? '#fff' : 'var(--text-primary)',
-                    fontSize: '13px',
+                    fontSize: '13.5px',
+                    lineHeight: 1.45,
                     wordBreak: 'break-word',
                   }}>
                     {m.content}
@@ -131,39 +135,22 @@ export default function ChatThread({ otherUserId, otherUserName, otherUserPhoto 
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', padding: '12px 16px', borderTop: '0.5px solid var(--border)' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', padding: '12px', borderTop: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
         <input
           value={content}
           onChange={e => setContent(e.target.value)}
           placeholder="Escribe un mensaje..."
-          style={{
-            flex: 1,
-            padding: '9px 12px',
-            background: 'var(--bg-primary)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '8px',
-            color: 'var(--text-primary)',
-            fontSize: '13px',
-            outline: 'none',
-          }}
+          className="input"
+          style={{ flex: 1, borderRadius: '999px', paddingLeft: '16px' }}
         />
         <button
           type="submit"
           disabled={sendMessage.isPending || !content.trim()}
-          style={{
-            padding: '9px 16px',
-            background: 'var(--accent-primary)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: 500,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-          }}
+          className="btn btn-primary"
+          style={{ width: '40px', height: '40px', padding: 0, borderRadius: '50%' }}
+          aria-label="Enviar"
         >
-          <i className="ti ti-send" style={{ fontSize: '14px' }} aria-hidden="true" />
+          <i className="ti ti-send" aria-hidden="true" />
         </button>
       </form>
     </div>

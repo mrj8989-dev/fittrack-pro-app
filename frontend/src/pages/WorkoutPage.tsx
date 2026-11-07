@@ -2,6 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useWorkoutPlans } from '../hooks/useWorkoutPlans'
 import { useStartSession, useAddSet, useCompleteSession } from '../hooks/useWorkoutSession'
 import { useNavigate } from 'react-router-dom'
+import { EmptyState, Loader, PageHeader, ProgressBar } from '../components/ui'
+import BodyMap from '../components/BodyMap'
+import { MUSCLE_LABEL, musclesFor } from '../lib/muscles'
 
 interface SetLog {
   exerciseId: string
@@ -10,6 +13,23 @@ interface SetLog {
   reps: number | ''
   completed: boolean
 }
+
+const DAY_LABEL = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+
+const setInputStyle = (done: boolean): React.CSSProperties => ({
+  height: '38px',
+  padding: '0 12px',
+  background: done ? 'transparent' : 'var(--bg-primary)',
+  border: `1px solid ${done ? 'transparent' : 'var(--border-strong)'}`,
+  borderRadius: '10px',
+  color: 'var(--text-primary)',
+  fontSize: '15px',
+  fontWeight: 600,
+  fontVariantNumeric: 'tabular-nums',
+  width: '100%',
+  minWidth: 0,
+  opacity: done ? 0.6 : 1,
+})
 
 function RestTimer({ seconds, onDone }: { seconds: number; onDone: () => void }) {
   const [remaining, setRemaining] = useState(seconds)
@@ -21,48 +41,45 @@ function RestTimer({ seconds, onDone }: { seconds: number; onDone: () => void })
   }, [remaining])
 
   const pct = (remaining / seconds) * 100
+  const urgent = remaining <= 10
+  const color = urgent ? 'var(--danger)' : 'var(--accent-primary)'
+  const R = 34
+  const C = 2 * Math.PI * R
 
   return (
-    <div style={{
-      position: 'fixed', bottom: '2rem', right: '2rem',
-      background: 'var(--bg-secondary)',
-      border: '0.5px solid var(--accent-primary)',
-      borderRadius: '16px',
-      padding: '1.25rem 1.5rem',
+    <div className="card" style={{
+      position: 'fixed', bottom: '1.5rem', right: '1.5rem',
       zIndex: 100,
-      minWidth: '180px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+      display: 'flex', alignItems: 'center', gap: '16px',
+      padding: '1rem 1.25rem',
+      background: 'var(--glass)',
+      backdropFilter: 'blur(18px)',
+      WebkitBackdropFilter: 'blur(18px)',
+      boxShadow: 'var(--shadow-lg)',
+      animation: 'fade-up 0.3s var(--ease) both',
     }}>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-        ⏱ Descanso
-      </div>
-      <div style={{ fontSize: '36px', fontWeight: 500, color: remaining <= 10 ? '#E24B4A' : 'var(--accent-primary)', marginBottom: '8px', textAlign: 'center' }}>
-        {String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}
-      </div>
-      <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px' }}>
+      <div style={{ position: 'relative', width: '80px', height: '80px' }}>
+        <svg width="80" height="80" style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx="40" cy="40" r={R} fill="none" stroke="var(--bg-hover)" strokeWidth="6" />
+          <circle
+            cx="40" cy="40" r={R} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+            strokeDasharray={C} strokeDashoffset={C * (1 - pct / 100)}
+            style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.2s' }}
+          />
+        </svg>
         <div style={{
-          height: '4px',
-          width: `${pct}%`,
-          background: remaining <= 10 ? '#E24B4A' : 'var(--accent-primary)',
-          borderRadius: '2px',
-          transition: 'width 1s linear',
-        }} />
+          position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color, fontVariantNumeric: 'tabular-nums',
+        }}>
+          {String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}
+        </div>
       </div>
-      <button
-        onClick={onDone}
-        style={{
-          marginTop: '10px', width: '100%',
-          padding: '6px',
-          background: 'transparent',
-          border: '0.5px solid var(--border)',
-          borderRadius: '8px',
-          color: 'var(--text-secondary)',
-          fontSize: '12px',
-          cursor: 'pointer',
-        }}
-      >
-        Saltar
-      </button>
+      <div>
+        <div className="stat-label" style={{ marginBottom: '8px' }}>Descanso</div>
+        <button onClick={onDone} className="btn btn-secondary btn-sm">
+          <i className="ti ti-player-skip-forward" aria-hidden="true" /> Saltar
+        </button>
+      </div>
     </div>
   )
 }
@@ -81,6 +98,7 @@ export default function WorkoutPage() {
   const [restTimer, setRestTimer] = useState<{ seconds: number; active: boolean }>({ seconds: 0, active: false })
   const [notes, setNotes] = useState('')
   const [elapsed, setElapsed] = useState(0)
+  const [currentExIdx, setCurrentExIdx] = useState(0)
   const timerRef = useRef<any>(null)
 
   // Cronómetro de sesión
@@ -116,6 +134,7 @@ export default function WorkoutPage() {
     setSessionId(session.id)
     setSelectedWorkout(workout)
     setSets(initSets(workout))
+    setCurrentExIdx(0)
     setPhase('active')
   }
 
@@ -147,6 +166,12 @@ export default function WorkoutPage() {
         i === setIdx ? { ...s, completed: true } : s
       )
     }))
+    // Al cerrar la última serie de un ejercicio, pasa al siguiente.
+    const pending = sets[exerciseId].filter((s, i) => i !== setIdx && !s.completed).length
+    if (pending === 0) {
+      const total = selectedWorkout?.exercises?.length ?? 0
+      setCurrentExIdx(i => Math.min(i + 1, total - 1))
+    }
     if (restTime > 0) setRestTimer({ seconds: restTime, active: true })
   }
 
@@ -160,346 +185,300 @@ export default function WorkoutPage() {
   const completedSets = Object.values(sets).flat().filter(s => s.completed).length
   const totalSets = Object.values(sets).flat().length
 
-  if (isLoading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-      <div style={{ color: 'var(--accent-primary)', fontSize: '14px' }}>Cargando...</div>
-    </div>
-  )
+  if (isLoading) return <Loader />
 
   // FASE: SELECCIONAR WORKOUT
   if (phase === 'select') return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-        ¿Qué entrenamos hoy?
-      </h1>
-      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-        Selecciona el workout de tu plan
-      </p>
+    <div className="page" style={{ maxWidth: '860px' }}>
+      <PageHeader
+        eyebrow={<><i className="ti ti-barbell" aria-hidden="true" /> Entrenar</>}
+        title="¿Qué entrenamos hoy?"
+        subtitle="Elige un entrenamiento de tu plan para empezar la sesión"
+      />
 
       {plans.length === 0 ? (
-        <div style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>
-          No tienes planes de entrenamiento. Crea uno primero.
+        <div className="card">
+          <EmptyState icon="ti-calendar-off" title="Sin planes de entrenamiento">
+            Tu entrenador todavía no te ha asignado ningún plan.
+          </EmptyState>
         </div>
       ) : (
         plans.map((plan: any) => (
-          <div key={plan.id} style={{ marginBottom: '1.5rem' }}>
-            <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '10px' }}>
-              {plan.name}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <section key={plan.id} style={{ marginBottom: '1.75rem' }}>
+            <h2 className="section-title"><i className="ti ti-list-details" aria-hidden="true" /> {plan.name}</h2>
+            <div className="grid-auto" style={{ '--min': '260px' } as React.CSSProperties}>
               {plan.workouts?.map((workout: any) => (
                 <button
                   key={workout.id}
                   onClick={() => handleSelectWorkout(workout)}
                   disabled={startSession.isPending}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '1rem 1.25rem',
-                    background: 'var(--bg-secondary)',
-                    border: '0.5px solid var(--border)',
-                    borderRadius: '12px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'border-color 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-primary)')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+                  className="card card-interactive"
+                  style={{ display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left', color: 'inherit' }}
                 >
-                  <div style={{
-                    width: '40px', height: '40px',
-                    borderRadius: '10px',
-                    background: 'rgba(29,158,117,0.15)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <i className="ti ti-barbell" style={{ fontSize: '20px', color: 'var(--accent-primary)' }} aria-hidden="true" />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                      {workout.name}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                      {workout.exercises?.length || 0} ejercicios · {['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'][workout.dayOfWeek || 0]}
+                  <span className="icon-tile lg"><i className="ti ti-barbell" aria-hidden="true" /></span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{workout.name}</div>
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                      <span className="badge">{workout.exercises?.length || 0} ejercicios</span>
+                      {workout.dayOfWeek ? <span className="badge badge-accent">{DAY_LABEL[workout.dayOfWeek]}</span> : null}
                     </div>
                   </div>
-                  <i className="ti ti-arrow-right" style={{ fontSize: '18px', color: 'var(--text-tertiary)' }} aria-hidden="true" />
+                  <i className="ti ti-player-play-filled" style={{ fontSize: '18px', color: 'var(--accent-primary)' }} aria-hidden="true" />
                 </button>
               ))}
             </div>
-          </div>
+          </section>
         ))
       )}
     </div>
   )
 
   // FASE: SESIÓN ACTIVA
-  if (phase === 'active') return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+  if (phase === 'active') {
+    const pct = Math.round((completedSets / Math.max(totalSets, 1)) * 100)
+    return (
+      <div className="page" style={{ maxWidth: '1120px' }}>
 
-      {/* Header sesión */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: '1.5rem', flexWrap: 'wrap', gap: '8px',
-      }}>
-        <div>
-          <h1 style={{ fontSize: '18px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            {selectedWorkout?.name}
-          </h1>
-          <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-            ⏱ {formatElapsed()} · {completedSets}/{totalSets} series completadas
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <div style={{
-            padding: '6px 14px',
-            background: 'var(--bg-secondary)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '8px',
-            fontSize: '13px',
-            color: 'var(--text-secondary)',
-          }}>
-            {Math.round((completedSets / Math.max(totalSets, 1)) * 100)}% completado
-          </div>
-          <button
-            onClick={handleFinish}
-            disabled={completeSession.isPending}
-            style={{
-              padding: '6px 16px',
-              background: 'var(--accent-primary)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            Finalizar
-          </button>
-        </div>
-      </div>
-
-      {/* Barra de progreso */}
-      <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px', marginBottom: '1.5rem' }}>
-        <div style={{
-          height: '4px',
-          width: `${(completedSets / Math.max(totalSets, 1)) * 100}%`,
-          background: 'var(--accent-primary)',
-          borderRadius: '2px',
-          transition: 'width 0.3s',
-        }} />
-      </div>
-
-      {/* Ejercicios */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {selectedWorkout?.exercises?.map((we: any) => {
-          const exerciseSets = sets[we.exerciseId] || []
-          const allDone = exerciseSets.every(s => s.completed)
-
-          return (
-            <div key={we.exerciseId} style={{
-              background: 'var(--bg-secondary)',
-              border: `0.5px solid ${allDone ? 'var(--accent-primary)' : 'var(--border)'}`,
-              borderRadius: '12px',
-              padding: '1.25rem',
-              transition: 'border-color 0.2s',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1rem' }}>
-                {allDone && (
-                  <div style={{
-                    width: '20px', height: '20px', borderRadius: '50%',
-                    background: 'var(--accent-primary)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    <i className="ti ti-check" style={{ fontSize: '12px', color: '#fff' }} aria-hidden="true" />
-                  </div>
-                )}
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {we.exercise?.name}
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                    {we.sets} series · {we.reps} reps · {we.restTime}s descanso
-                  </div>
-                </div>
-                    {we.exercise?.videoUrl && (
-                    
-                    <a href={we.exercise.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', fontSize: '18px' }}
-                    >
-                        <i className="ti ti-brand-youtube" aria-hidden="true" />
-                    </a>
-                    )}
+        {/* Header sesión */}
+        <div className="card card-accent" style={{ marginBottom: '1.25rem', position: 'sticky', top: 'calc(var(--topbar-h, 0px) + 0.75rem)', zIndex: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '14px' }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="page-eyebrow" style={{ marginBottom: '4px' }}>
+                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--danger)', boxShadow: '0 0 0 3px var(--danger-soft)' }} />
+                Sesión en curso
               </div>
-
-              {/* Cabecera tabla */}
-              <div style={{
-                display: 'grid', gridTemplateColumns: '40px 1fr 1fr 80px',
-                gap: '8px', marginBottom: '6px',
-                fontSize: '11px', color: 'var(--text-tertiary)',
-                textTransform: 'uppercase', letterSpacing: '0.05em',
-              }}>
-                <span>Serie</span>
-                <span>Peso (kg)</span>
-                <span>Reps</span>
-                <span></span>
-              </div>
-
-              {/* Series */}
-              {exerciseSets.map((set, idx) => (
-                <div key={idx} style={{
-                  display: 'grid', gridTemplateColumns: '40px 1fr 1fr 80px',
-                  gap: '8px', marginBottom: '6px', alignItems: 'center',
-                }}>
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '50%',
-                    background: set.completed ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                    border: `0.5px solid ${set.completed ? 'var(--accent-primary)' : 'var(--border)'}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '12px', fontWeight: 500,
-                    color: set.completed ? '#fff' : 'var(--text-secondary)',
-                  }}>
-                    {set.completed ? <i className="ti ti-check" style={{ fontSize: '12px' }} aria-hidden="true" /> : idx + 1}
-                  </div>
-                  <input
-                    type="number"
-                    value={set.weight}
-                    onChange={e => handleSetChange(we.exerciseId, idx, 'weight', e.target.value)}
-                    disabled={set.completed}
-                    placeholder="0"
-                    style={{
-                      padding: '8px 10px',
-                      background: set.completed ? 'var(--bg-primary)' : 'var(--bg-primary)',
-                      border: `0.5px solid ${set.completed ? 'transparent' : 'var(--border)'}`,
-                      borderRadius: '8px',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
-                      outline: 'none',
-                      opacity: set.completed ? 0.5 : 1,
-                    }}
-                  />
-                  <input
-                    type="number"
-                    value={set.reps}
-                    onChange={e => handleSetChange(we.exerciseId, idx, 'reps', e.target.value)}
-                    disabled={set.completed}
-                    placeholder="0"
-                    style={{
-                      padding: '8px 10px',
-                      background: 'var(--bg-primary)',
-                      border: `0.5px solid ${set.completed ? 'transparent' : 'var(--border)'}`,
-                      borderRadius: '8px',
-                      color: 'var(--text-primary)',
-                      fontSize: '14px',
-                      outline: 'none',
-                      opacity: set.completed ? 0.5 : 1,
-                    }}
-                  />
-                  <button
-                    onClick={() => handleCompleteSet(we.exerciseId, idx, we.restTime || 90)}
-                    disabled={set.completed || addSet.isPending}
-                    style={{
-                      padding: '8px',
-                      background: set.completed ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                      border: `0.5px solid ${set.completed ? 'var(--accent-primary)' : 'var(--border)'}`,
-                      borderRadius: '8px',
-                      color: set.completed ? '#fff' : 'var(--text-secondary)',
-                      fontSize: '12px',
-                      cursor: set.completed ? 'default' : 'pointer',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {set.completed ? '✓' : 'Hecho'}
-                  </button>
-                </div>
-              ))}
+              <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>{selectedWorkout?.name}</h1>
             </div>
-          )
-        })}
-      </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <div className="stat-value" style={{ fontSize: '22px' }}>{formatElapsed()}</div>
+                <div className="stat-sub">{completedSets}/{totalSets} series</div>
+              </div>
+              <button onClick={handleFinish} disabled={completeSession.isPending} className="btn btn-primary">
+                <i className="ti ti-flag-check" aria-hidden="true" /> Finalizar
+              </button>
+            </div>
+          </div>
+          <ProgressBar value={pct} />
+        </div>
 
-      {/* Notas */}
-      <div style={{ marginTop: '1.5rem' }}>
-        <textarea
-          value={notes}
-          onChange={e => setNotes(e.target.value)}
-          placeholder="Notas de la sesión (opcional)..."
-          rows={3}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            background: 'var(--bg-secondary)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '10px',
-            color: 'var(--text-primary)',
-            fontSize: '13px',
-            outline: 'none',
-            resize: 'vertical',
-          }}
-        />
-      </div>
+        <div className="session-layout">
+        {/* Navegador de ejercicios */}
+        <aside className="card session-nav">
+          <div className="stat-label" style={{ padding: '0 4px 8px' }}>Ejercicios</div>
+          <div className="session-nav-list">
+            {selectedWorkout?.exercises?.map((we: any, i: number) => {
+              const exSets = sets[we.exerciseId] || []
+              const done = exSets.filter(s => s.completed).length
+              const complete = exSets.length > 0 && done === exSets.length
+              return (
+                <button
+                  key={we.exerciseId}
+                  className={`list-item${i === currentExIdx ? ' active' : ''}`}
+                  onClick={() => setCurrentExIdx(i)}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                    <span className="session-nav-num" data-done={complete || undefined}>
+                      {complete ? <i className="ti ti-check" aria-hidden="true" /> : i + 1}
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{we.exercise?.name}</span>
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexShrink: 0 }}>{done}/{exSets.length}</span>
+                </button>
+              )
+            })}
+          </div>
+          <div className="session-notes">
+            <label className="label" htmlFor="session-notes">Notas</label>
+            <textarea
+              id="session-notes"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="¿Cómo te has sentido? (opcional)"
+              rows={2}
+              className="input"
+            />
+          </div>
+        </aside>
 
-      {/* Cronómetro de descanso */}
-      {restTimer.active && (
-        <RestTimer
-          seconds={restTimer.seconds}
-          onDone={() => setRestTimer({ seconds: 0, active: false })}
-        />
-      )}
-    </div>
-  )
+        {/* Ejercicio actual */}
+        <div>
+          {selectedWorkout?.exercises?.map((we: any, exIdx: number) => {
+            if (exIdx !== currentExIdx) return null
+            const exerciseSets = sets[we.exerciseId] || []
+            const allDone = exerciseSets.length > 0 && exerciseSets.every(s => s.completed)
+            const total = selectedWorkout.exercises.length
+
+            return (
+              <div key={we.exerciseId} className="card" style={{
+                borderColor: allDone ? 'color-mix(in srgb, var(--accent-primary) 45%, transparent)' : undefined,
+                transition: 'border-color 0.2s',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
+                  <span className="icon-tile" style={allDone ? { background: 'var(--accent-gradient)', color: '#fff' } : undefined}>
+                    {allDone
+                      ? <i className="ti ti-check" aria-hidden="true" />
+                      : <span style={{ fontSize: '14px', fontWeight: 700 }}>{exIdx + 1}</span>}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{we.exercise?.name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                      {we.sets} series · {we.reps} reps · {we.restTime}s descanso
+                    </div>
+                  </div>
+                  {we.exercise?.videoUrl && (
+                    <a href={we.exercise.videoUrl} target="_blank" rel="noopener noreferrer" className="btn-icon" title="Ver técnica">
+                      <i className="ti ti-brand-youtube" style={{ fontSize: '20px' }} aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+
+                {/* Cabecera tabla */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '36px 1fr 1fr 88px',
+                  gap: '8px', marginBottom: '6px', padding: '0 2px',
+                  fontSize: '11px', fontWeight: 600, color: 'var(--text-tertiary)',
+                  textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>
+                  <span>Serie</span>
+                  <span>Peso (kg)</span>
+                  <span>Reps</span>
+                  <span></span>
+                </div>
+
+                {/* Series */}
+                {exerciseSets.map((set, idx) => (
+                  <div key={idx} style={{
+                    display: 'grid', gridTemplateColumns: '36px 1fr 1fr 88px',
+                    gap: '8px', marginBottom: '6px', alignItems: 'center',
+                    padding: '4px 2px', borderRadius: '10px',
+                    background: set.completed ? 'var(--accent-softer)' : 'transparent',
+                  }}>
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '50%',
+                      background: set.completed ? 'var(--accent-primary)' : 'var(--bg-hover)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', fontWeight: 600,
+                      color: set.completed ? '#fff' : 'var(--text-secondary)',
+                    }}>
+                      {set.completed ? <i className="ti ti-check" style={{ fontSize: '13px' }} aria-hidden="true" /> : idx + 1}
+                    </div>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={set.weight}
+                      onChange={e => handleSetChange(we.exerciseId, idx, 'weight', e.target.value)}
+                      disabled={set.completed}
+                      placeholder="0"
+                      style={setInputStyle(set.completed)}
+                    />
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={set.reps}
+                      onChange={e => handleSetChange(we.exerciseId, idx, 'reps', e.target.value)}
+                      disabled={set.completed}
+                      placeholder="0"
+                      style={setInputStyle(set.completed)}
+                    />
+                    <button
+                      onClick={() => handleCompleteSet(we.exerciseId, idx, we.restTime || 90)}
+                      disabled={set.completed || addSet.isPending}
+                      className={`btn btn-sm ${set.completed ? 'btn-ghost' : 'btn-secondary'}`}
+                      style={set.completed ? { opacity: 1, color: 'var(--accent-primary)' } : undefined}
+                    >
+                      {set.completed ? <><i className="ti ti-circle-check-filled" aria-hidden="true" /> Hecho</> : 'Hecho'}
+                    </button>
+                  </div>
+                ))}
+
+                {we.exercise && (() => {
+                  const m = musclesFor(we.exercise)
+                  return (
+                    <div className="session-muscles">
+                      <div style={{ width: '170px', flexShrink: 0 }}>
+                        <BodyMap primary={m.primary} secondary={m.secondary} height={170} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="stat-label" style={{ marginBottom: '6px' }}>Músculos</div>
+                        <div className="chips" style={{ marginBottom: '10px' }}>
+                          {m.primary.map(id => <span key={id} className="badge badge-accent">{MUSCLE_LABEL[id]}</span>)}
+                          {m.secondary.filter(id => !m.primary.includes(id)).map(id => <span key={id} className="badge">{MUSCLE_LABEL[id]}</span>)}
+                        </div>
+                        {we.exercise.description && (
+                          <p style={{ fontSize: '13px', lineHeight: 1.55, color: 'var(--text-secondary)' }}>{we.exercise.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)' }}>
+                  <button className="btn btn-secondary btn-sm" disabled={exIdx === 0} onClick={() => setCurrentExIdx(exIdx - 1)}>
+                    <i className="ti ti-chevron-left" aria-hidden="true" /> Anterior
+                  </button>
+                  <span style={{ fontSize: '12px', color: 'var(--text-tertiary)', alignSelf: 'center' }}>{exIdx + 1} de {total}</span>
+                  {exIdx < total - 1 ? (
+                    <button className="btn btn-secondary btn-sm" onClick={() => setCurrentExIdx(exIdx + 1)}>
+                      Siguiente <i className="ti ti-chevron-right" aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <button className="btn btn-primary btn-sm" onClick={handleFinish} disabled={completeSession.isPending}>
+                      <i className="ti ti-flag-check" aria-hidden="true" /> Finalizar
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        </div>
+
+
+        {/* Cronómetro de descanso */}
+        {restTimer.active && (
+          <RestTimer
+            seconds={restTimer.seconds}
+            onDone={() => setRestTimer({ seconds: 0, active: false })}
+          />
+        )}
+      </div>
+    )
+  }
 
   // FASE: SESIÓN COMPLETADA
   return (
-    <div style={{
-      maxWidth: '500px', margin: '0 auto',
+    <div className="page" style={{
+      maxWidth: '520px',
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', minHeight: '60vh', textAlign: 'center',
+      justifyContent: 'center', minHeight: '65vh', textAlign: 'center',
     }}>
       <div style={{
-        width: '80px', height: '80px', borderRadius: '50%',
-        background: 'rgba(29,158,117,0.15)',
+        width: '96px', height: '96px', borderRadius: '28px',
+        background: 'var(--accent-gradient)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: '1.5rem',
+        boxShadow: '0 20px 50px -15px var(--accent-primary)',
       }}>
-        <i className="ti ti-trophy" style={{ fontSize: '36px', color: 'var(--accent-primary)' }} aria-hidden="true" />
+        <i className="ti ti-trophy" style={{ fontSize: '44px', color: '#fff' }} aria-hidden="true" />
       </div>
-      <h1 style={{ fontSize: '24px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '8px' }}>
-        ¡Sesión completada!
-      </h1>
-      <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-        {selectedWorkout?.name}
-      </p>
-      <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '2rem' }}>
-        Duración: {formatElapsed()} · {completedSets} series completadas
-      </p>
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          onClick={() => { setPhase('select'); setElapsed(0); setNotes('') }}
-          style={{
-            padding: '10px 24px',
-            background: 'var(--accent-primary)',
-            color: '#fff', border: 'none',
-            borderRadius: '10px', fontSize: '14px',
-            fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          Otro entrenamiento
+      <h1 className="page-title" style={{ fontSize: '30px' }}>¡Sesión completada!</h1>
+      <p className="page-subtitle" style={{ marginBottom: '1.5rem' }}>{selectedWorkout?.name}</p>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', width: '100%', marginBottom: '2rem' }}>
+        <div className="card stat">
+          <span className="stat-label">Duración</span>
+          <span className="stat-value">{formatElapsed()}</span>
+        </div>
+        <div className="card stat">
+          <span className="stat-label">Series</span>
+          <span className="stat-value">{completedSets}</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button onClick={() => { setPhase('select'); setElapsed(0); setNotes('') }} className="btn btn-primary btn-lg">
+          <i className="ti ti-refresh" aria-hidden="true" /> Otro entrenamiento
         </button>
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            padding: '10px 24px',
-            background: 'transparent',
-            color: 'var(--text-secondary)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '10px', fontSize: '14px',
-            cursor: 'pointer',
-          }}
-        >
+        <button onClick={() => navigate('/')} className="btn btn-secondary btn-lg">
           Ir al dashboard
         </button>
       </div>

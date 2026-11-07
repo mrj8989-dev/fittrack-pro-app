@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { assignDemoMenu, seedNutrition } from './seed-nutrition';
+import { EXERCISE_CATALOG } from './exercise-catalog';
 
 const prisma = new PrismaClient();
 
@@ -77,7 +79,11 @@ async function main() {
     prisma.exercise.upsert({ where: { id: 'ex-plancha' }, update: {}, create: { id: 'ex-plancha', name: 'Plancha', muscleGroup: 'Core', equipment: 'Peso corporal', description: 'Estabilización de core. Cuerpo recto, no subas las caderas.', videoUrl: 'https://www.youtube.com/watch?v=ASdvN_XEl_c' } }),
     prisma.exercise.upsert({ where: { id: 'ex-rueda-ab' }, update: {}, create: { id: 'ex-rueda-ab', name: 'Rueda abdominal', muscleGroup: 'Core', equipment: 'Rueda abdominal', description: 'Excelente para core completo. Empieza de rodillas hasta dominar el movimiento.', videoUrl: 'https://www.youtube.com/watch?v=1G1AFwTsRYQ' } }),
   ]);
-  console.log(`✅ ${exercises.length} ejercicios creados`);
+  // Catálogo ampliado: upsert por id, así re-ejecutar el seed actualiza los textos sin duplicar.
+  for (const { id, ...data } of EXERCISE_CATALOG) {
+    await prisma.exercise.upsert({ where: { id }, update: data, create: { id, ...data } });
+  }
+  console.log(`✅ ${exercises.length + EXERCISE_CATALOG.length} ejercicios en el catálogo`);
 
   // ── PLAN ─────────────────────────────────────────────────────────
   let plan = await prisma.workoutPlan.findFirst({
@@ -95,82 +101,96 @@ async function main() {
   }
   console.log('✅ Plan creado:', plan.name);
 
-  // ── LIMPIAR WORKOUTS EXISTENTES ──────────────────────────────────
-  await prisma.workoutExercise.deleteMany({
-    where: { workout: { workoutPlanId: plan.id } }
-  })
-  await prisma.workout.deleteMany({
-    where: { workoutPlanId: plan.id }
-  })
+  // Si ya hay sesiones registradas con esta rutina, no se puede borrar y recrear:
+  // se deja tal cual para no perder el historial del usuario demo.
+  const planInUse = (await prisma.workoutSession.count({
+    where: { workout: { workoutPlanId: plan.id } },
+  })) > 0
 
-  // ── WORKOUTS ─────────────────────────────────────────────────────
+  if (planInUse) {
+    console.log("⏭️  Rutina con sesiones registradas: se conserva sin cambios")
+  } else {
+    // ── LIMPIAR WORKOUTS EXISTENTES ──────────────────────────────────
+    await prisma.workoutExercise.deleteMany({
+      where: { workout: { workoutPlanId: plan.id } }
+    })
+    await prisma.workout.deleteMany({
+      where: { workoutPlanId: plan.id }
+    })
 
-  // DÍA 1 — Upper A
-  const upperA = await prisma.workout.create({
-    data: { name: 'Día 1 — Upper A (Empuje + Tirón)', dayOfWeek: 1, workoutPlanId: plan.id }
-  })
-  for (const ex of [
-    { exerciseId: 'ex-press-banca', sets: 4, reps: 6, restTime: 180, order: 1 },
-    { exerciseId: 'ex-remo-barra', sets: 4, reps: 6, restTime: 180, order: 2 },
-    { exerciseId: 'ex-press-inclinado', sets: 3, reps: 10, restTime: 120, order: 3 },
-    { exerciseId: 'ex-dominadas', sets: 3, reps: 8, restTime: 120, order: 4 },
-    { exerciseId: 'ex-press-militar', sets: 3, reps: 10, restTime: 90, order: 5 },
-    { exerciseId: 'ex-curl-barra', sets: 3, reps: 10, restTime: 60, order: 6 },
-    { exerciseId: 'ex-press-frances', sets: 3, reps: 10, restTime: 60, order: 7 },
-  ]) {
-    await prisma.workoutExercise.create({ data: { workoutId: upperA.id, ...ex } })
+    // ── WORKOUTS ─────────────────────────────────────────────────────
+
+    // DÍA 1 — Upper A
+    const upperA = await prisma.workout.create({
+      data: { name: 'Día 1 — Upper A (Empuje + Tirón)', dayOfWeek: 1, workoutPlanId: plan.id }
+    })
+    for (const ex of [
+      { exerciseId: 'ex-press-banca', sets: 4, reps: 6, restTime: 180, order: 1 },
+      { exerciseId: 'ex-remo-barra', sets: 4, reps: 6, restTime: 180, order: 2 },
+      { exerciseId: 'ex-press-inclinado', sets: 3, reps: 10, restTime: 120, order: 3 },
+      { exerciseId: 'ex-dominadas', sets: 3, reps: 8, restTime: 120, order: 4 },
+      { exerciseId: 'ex-press-militar', sets: 3, reps: 10, restTime: 90, order: 5 },
+      { exerciseId: 'ex-curl-barra', sets: 3, reps: 10, restTime: 60, order: 6 },
+      { exerciseId: 'ex-press-frances', sets: 3, reps: 10, restTime: 60, order: 7 },
+    ]) {
+      await prisma.workoutExercise.create({ data: { workoutId: upperA.id, ...ex } })
+    }
+    console.log('✅ Día 1 Upper A creado')
+
+    // DÍA 2 — Lower A
+    const lowerA = await prisma.workout.create({
+      data: { name: 'Día 2 — Lower A (Cuádriceps)', dayOfWeek: 2, workoutPlanId: plan.id }
+    })
+    for (const ex of [
+      { exerciseId: 'ex-sentadilla', sets: 4, reps: 6, restTime: 180, order: 1 },
+      { exerciseId: 'ex-peso-muerto-rumano', sets: 3, reps: 10, restTime: 120, order: 2 },
+      { exerciseId: 'ex-zancadas', sets: 3, reps: 10, restTime: 90, order: 3 },
+      { exerciseId: 'ex-hip-thrust', sets: 3, reps: 12, restTime: 90, order: 4 },
+      { exerciseId: 'ex-gemelos', sets: 4, reps: 15, restTime: 60, order: 5 },
+      { exerciseId: 'ex-plancha', sets: 3, reps: 1, duration: 60, restTime: 60, order: 6 },
+    ]) {
+      await prisma.workoutExercise.create({ data: { workoutId: lowerA.id, ...ex } })
+    }
+    console.log('✅ Día 2 Lower A creado')
+
+    // DÍA 3 — Upper B
+    const upperB = await prisma.workout.create({
+      data: { name: 'Día 3 — Upper B (Volumen)', dayOfWeek: 4, workoutPlanId: plan.id }
+    })
+    for (const ex of [
+      { exerciseId: 'ex-peso-muerto', sets: 4, reps: 5, restTime: 180, order: 1 },
+      { exerciseId: 'ex-fondos', sets: 4, reps: 8, restTime: 120, order: 2 },
+      { exerciseId: 'ex-remo-mancuerna', sets: 4, reps: 10, restTime: 90, order: 3 },
+      { exerciseId: 'ex-aperturas', sets: 3, reps: 12, restTime: 60, order: 4 },
+      { exerciseId: 'ex-elevaciones-laterales', sets: 4, reps: 15, restTime: 60, order: 5 },
+      { exerciseId: 'ex-curl-martillo', sets: 3, reps: 12, restTime: 60, order: 6 },
+      { exerciseId: 'ex-fondos-triceps', sets: 3, reps: 12, restTime: 60, order: 7 },
+      { exerciseId: 'ex-pajaros', sets: 3, reps: 15, restTime: 60, order: 8 },
+    ]) {
+      await prisma.workoutExercise.create({ data: { workoutId: upperB.id, ...ex } })
+    }
+    console.log('✅ Día 3 Upper B creado')
+
+    // DÍA 4 — Lower B
+    const lowerB = await prisma.workout.create({
+      data: { name: 'Día 4 — Lower B (Isquiotibiales)', dayOfWeek: 5, workoutPlanId: plan.id }
+    })
+    for (const ex of [
+      { exerciseId: 'ex-peso-muerto', sets: 4, reps: 5, restTime: 180, order: 1 },
+      { exerciseId: 'ex-sentadilla-goblet', sets: 3, reps: 12, restTime: 90, order: 2 },
+      { exerciseId: 'ex-hip-thrust', sets: 4, reps: 10, restTime: 90, order: 3 },
+      { exerciseId: 'ex-zancadas', sets: 3, reps: 12, restTime: 90, order: 4 },
+      { exerciseId: 'ex-gemelos', sets: 4, reps: 20, restTime: 60, order: 5 },
+      { exerciseId: 'ex-rueda-ab', sets: 3, reps: 10, restTime: 60, order: 6 },
+    ]) {
+      await prisma.workoutExercise.create({ data: { workoutId: lowerB.id, ...ex } })
+    }
+    console.log('✅ Día 4 Lower B creado')
   }
-  console.log('✅ Día 1 Upper A creado')
 
-  // DÍA 2 — Lower A
-  const lowerA = await prisma.workout.create({
-    data: { name: 'Día 2 — Lower A (Cuádriceps)', dayOfWeek: 2, workoutPlanId: plan.id }
-  })
-  for (const ex of [
-    { exerciseId: 'ex-sentadilla', sets: 4, reps: 6, restTime: 180, order: 1 },
-    { exerciseId: 'ex-peso-muerto-rumano', sets: 3, reps: 10, restTime: 120, order: 2 },
-    { exerciseId: 'ex-zancadas', sets: 3, reps: 10, restTime: 90, order: 3 },
-    { exerciseId: 'ex-hip-thrust', sets: 3, reps: 12, restTime: 90, order: 4 },
-    { exerciseId: 'ex-gemelos', sets: 4, reps: 15, restTime: 60, order: 5 },
-    { exerciseId: 'ex-plancha', sets: 3, reps: 1, duration: 60, restTime: 60, order: 6 },
-  ]) {
-    await prisma.workoutExercise.create({ data: { workoutId: lowerA.id, ...ex } })
-  }
-  console.log('✅ Día 2 Lower A creado')
-
-  // DÍA 3 — Upper B
-  const upperB = await prisma.workout.create({
-    data: { name: 'Día 3 — Upper B (Volumen)', dayOfWeek: 4, workoutPlanId: plan.id }
-  })
-  for (const ex of [
-    { exerciseId: 'ex-peso-muerto', sets: 4, reps: 5, restTime: 180, order: 1 },
-    { exerciseId: 'ex-fondos', sets: 4, reps: 8, restTime: 120, order: 2 },
-    { exerciseId: 'ex-remo-mancuerna', sets: 4, reps: 10, restTime: 90, order: 3 },
-    { exerciseId: 'ex-aperturas', sets: 3, reps: 12, restTime: 60, order: 4 },
-    { exerciseId: 'ex-elevaciones-laterales', sets: 4, reps: 15, restTime: 60, order: 5 },
-    { exerciseId: 'ex-curl-martillo', sets: 3, reps: 12, restTime: 60, order: 6 },
-    { exerciseId: 'ex-fondos-triceps', sets: 3, reps: 12, restTime: 60, order: 7 },
-    { exerciseId: 'ex-pajaros', sets: 3, reps: 15, restTime: 60, order: 8 },
-  ]) {
-    await prisma.workoutExercise.create({ data: { workoutId: upperB.id, ...ex } })
-  }
-  console.log('✅ Día 3 Upper B creado')
-
-  // DÍA 4 — Lower B
-  const lowerB = await prisma.workout.create({
-    data: { name: 'Día 4 — Lower B (Isquiotibiales)', dayOfWeek: 5, workoutPlanId: plan.id }
-  })
-  for (const ex of [
-    { exerciseId: 'ex-peso-muerto', sets: 4, reps: 5, restTime: 180, order: 1 },
-    { exerciseId: 'ex-sentadilla-goblet', sets: 3, reps: 12, restTime: 90, order: 2 },
-    { exerciseId: 'ex-hip-thrust', sets: 4, reps: 10, restTime: 90, order: 3 },
-    { exerciseId: 'ex-zancadas', sets: 3, reps: 12, restTime: 90, order: 4 },
-    { exerciseId: 'ex-gemelos', sets: 4, reps: 20, restTime: 60, order: 5 },
-    { exerciseId: 'ex-rueda-ab', sets: 3, reps: 10, restTime: 60, order: 6 },
-  ]) {
-    await prisma.workoutExercise.create({ data: { workoutId: lowerB.id, ...ex } })
-  }
-  console.log('✅ Día 4 Lower B creado')
+  // ── NUTRICIÓN ────────────────────────────────────────────────────
+  await seedNutrition(prisma);
+  await assignDemoMenu(prisma, user.id, trainer.id);
 
   console.log('🎉 Seeder completado correctamente')
 }

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException }
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import * as fs from 'fs';
+import * as bcrypt from 'bcryptjs';
 import * as path from 'path';
 
 @Injectable()
@@ -39,20 +40,44 @@ export class UsersService {
     });
   }
 
-  async assignClient(email: string, trainerId: string) {
-    const client = await this.prisma.user.findUnique({ where: { email } });
-    if (!client || client.role !== Role.CLIENT) {
-      throw new NotFoundException('No existe ningún cliente con ese email');
-    }
-    if (client.trainerId === trainerId) {
-      throw new ConflictException('Ese cliente ya está asignado a tu cartera');
+  async findAllClients() {
+    return this.prisma.user.findMany({
+      where: { role: Role.CLIENT },
+      select: { id: true, name: true, email: true, subscriptionPlan: true, createdAt: true, profilePhoto: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /**
+   * Añade un cliente a la cartera del entrenador. Si el email ya es de un cliente, lo asigna;
+   * si no existe ninguna cuenta, la crea con el nombre y la contraseña indicados.
+   */
+  async assignClient(dto: { email: string; name?: string; password?: string }, trainerId: string) {
+    const email = dto.email.trim().toLowerCase();
+    const existing = await this.prisma.user.findFirst({ where: { email: { equals: email, mode: 'insensitive' } } });
+    const select = { id: true, name: true, email: true, subscriptionPlan: true, createdAt: true, profilePhoto: true };
+
+    if (!existing) {
+      if (!dto.name || !dto.password) {
+        throw new NotFoundException('No existe ninguna cuenta con ese email. Indica nombre y contraseña para darla de alta.');
+      }
+      return this.prisma.user.create({
+        data: { email, name: dto.name.trim(), password: await bcrypt.hash(dto.password, 10), role: Role.CLIENT, trainerId },
+        select,
+      });
     }
 
-    return this.prisma.user.update({
-      where: { id: client.id },
-      data: { trainerId },
-      select: { id: true, name: true, email: true, subscriptionPlan: true, createdAt: true },
-    });
+    if (existing.role !== Role.CLIENT) {
+      throw new ConflictException('Ese email pertenece a un entrenador o administrador, no a un cliente');
+    }
+    if (existing.trainerId === trainerId) {
+      throw new ConflictException('Ese cliente ya está en tu cartera');
+    }
+    if (existing.trainerId) {
+      throw new ConflictException('Ese cliente ya tiene otro entrenador asignado. Pide a un administrador que lo reasigne.');
+    }
+
+    return this.prisma.user.update({ where: { id: existing.id }, data: { trainerId }, select });
   }
 
   async findMyTrainer(trainerId: string | null) {

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useClients, useAddClient, useRemoveClient } from '../hooks/useTrainerClients'
+import { useClients, useRemoveClient } from '../hooks/useTrainerClients'
+import AddClientModal from '../components/AddClientModal'
 import {
   useClientPlans, useCreatePlan, useCreateWorkout,
   useAddExercise, useRemoveExercise, useReorderExercises,
@@ -17,33 +19,15 @@ import {
   SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { inputStyle, primaryButtonStyle, secondaryButtonStyle } from '../lib/styles'
+import { EmptyState, Loader, PageHeader } from '../components/ui'
 
-const cardStyle: React.CSSProperties = {
-  background: 'var(--bg-secondary)',
-  border: '0.5px solid var(--border)',
-  borderRadius: '12px',
-  padding: '1.25rem',
-}
+const DAY_SHORT = ['', 'L', 'M', 'X', 'J', 'V', 'S', 'D']
 
-const inputStyle: React.CSSProperties = {
-  padding: '9px 12px',
-  background: 'var(--bg-primary)',
-  border: '0.5px solid var(--border)',
-  borderRadius: '8px',
-  color: 'var(--text-primary)',
-  fontSize: '13px',
-  outline: 'none',
-}
-
-const primaryButtonStyle: React.CSSProperties = {
-  padding: '9px 16px',
-  background: 'var(--accent-primary)',
-  color: '#fff',
-  border: 'none',
-  borderRadius: '8px',
-  fontSize: '13px',
-  fontWeight: 500,
-  cursor: 'pointer',
+function groupByMuscle<T extends { muscleGroup: string }>(items: T[]): Record<string, T[]> {
+  const groups: Record<string, T[]> = {}
+  for (const item of items) (groups[item.muscleGroup] ??= []).push(item)
+  return groups
 }
 
 function SortableExerciseRow({ exercise, onRemove }: { exercise: any; onRemove: () => void }) {
@@ -54,10 +38,11 @@ function SortableExerciseRow({ exercise, onRemove }: { exercise: any; onRemove: 
     opacity: isDragging ? 0.5 : 1,
     display: 'flex', alignItems: 'center', gap: '10px',
     padding: '8px 10px',
-    background: 'var(--bg-primary)',
-    border: '0.5px solid var(--border)',
-    borderRadius: '8px',
+    background: 'var(--bg-secondary)',
+    border: '1px solid var(--border)',
+    borderRadius: '10px',
     marginBottom: '6px',
+    boxShadow: isDragging ? 'var(--shadow-lg)' : 'var(--shadow-sm)',
   }
 
   return (
@@ -66,13 +51,10 @@ function SortableExerciseRow({ exercise, onRemove }: { exercise: any; onRemove: 
         <i className="ti ti-grip-vertical" style={{ fontSize: '16px' }} aria-hidden="true" />
       </span>
       <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-primary)' }}>{exercise.exercise.name}</span>
-      <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+      <span className="badge">
         {exercise.sets}x{exercise.reps ?? '-'}{exercise.restTime ? ` · ${exercise.restTime}s desc.` : ''}
       </span>
-      <button
-        onClick={onRemove}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: '2px' }}
-      >
+      <button onClick={onRemove} className="btn-icon" style={{ width: '28px', height: '28px' }} title="Quitar ejercicio" aria-label="Quitar ejercicio">
         <i className="ti ti-trash" style={{ fontSize: '14px' }} aria-hidden="true" />
       </button>
     </div>
@@ -125,9 +107,10 @@ function WorkoutDayCard({ workout }: { workout: any }) {
   }
 
   return (
-    <div style={{ ...cardStyle, background: 'var(--bg-primary)', marginTop: '10px' }}>
-      <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '10px' }}>
-        {workout.name}{workout.dayOfWeek ? ` · Día ${workout.dayOfWeek}` : ''}
+    <div className="inset" style={{ padding: '1rem', marginTop: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '10px' }}>
+        {workout.dayOfWeek ? <span className="badge badge-accent">Día {workout.dayOfWeek}</span> : null}
+        {workout.name}
       </div>
 
       {items.length > 0 ? (
@@ -157,24 +140,27 @@ function WorkoutDayCard({ workout }: { workout: any }) {
             style={{ ...inputStyle, flex: '1 1 160px' }}
           >
             <option value="">Selecciona ejercicio...</option>
-            {exercises.map((ex: any) => (
-              <option key={ex.id} value={ex.id}>{ex.name}</option>
+            {Object.entries(groupByMuscle(exercises)).map(([group, list]) => (
+              <optgroup key={group} label={group}>
+                {list.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+              </optgroup>
             ))}
           </select>
           <input type="number" min={1} value={sets} onChange={e => setSets(e.target.value)} placeholder="Sets" style={{ ...inputStyle, width: '70px' }} />
           <input type="number" min={1} value={reps} onChange={e => setReps(e.target.value)} placeholder="Reps" style={{ ...inputStyle, width: '70px' }} />
           <input type="number" min={1} value={restTime} onChange={e => setRestTime(e.target.value)} placeholder="Descanso (s)" style={{ ...inputStyle, width: '110px' }} />
           <button type="submit" style={primaryButtonStyle}>Añadir</button>
-          <button type="button" onClick={() => setShowAddForm(false)} style={{ ...primaryButtonStyle, background: 'transparent', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' }}>
+          <button type="button" onClick={() => setShowAddForm(false)} style={secondaryButtonStyle}>
             Cancelar
           </button>
         </form>
       ) : (
         <button
           onClick={() => setShowAddForm(true)}
-          style={{ marginTop: '8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', fontSize: '12px', padding: 0 }}
+          className="btn btn-ghost btn-sm"
+          style={{ marginTop: '4px', color: 'var(--accent-primary)' }}
         >
-          + Añadir ejercicio
+          <i className="ti ti-plus" aria-hidden="true" /> Añadir ejercicio
         </button>
       )}
     </div>
@@ -202,16 +188,41 @@ function PlanCard({ plan }: { plan: any }) {
     })
   }
 
+  const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
+  const activeDay = plan.workouts.find((w: any) => w.id === selectedDayId) ?? plan.workouts[0]
+
   return (
-    <div style={cardStyle}>
-      <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>{plan.name}</div>
+    <div className="card">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <span className="icon-tile"><i className="ti ti-list-details" aria-hidden="true" /></span>
+        <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>{plan.name}</div>
+      </div>
       {plan.description && (
         <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{plan.description}</div>
       )}
 
-      {plan.workouts.map((workout: any) => (
-        <WorkoutDayCard key={workout.id} workout={workout} />
-      ))}
+      {plan.workouts.length > 0 && (
+        <div className="tabs" role="tablist" style={{ marginTop: '14px', display: 'flex', width: '100%' }}>
+          {plan.workouts.map((workout: any) => (
+            <button
+              key={workout.id}
+              role="tab"
+              aria-selected={activeDay?.id === workout.id}
+              className={`tab${activeDay?.id === workout.id ? ' active' : ''}`}
+              onClick={() => setSelectedDayId(workout.id)}
+              title={workout.name}
+            >
+              {workout.dayOfWeek ? DAY_SHORT[workout.dayOfWeek] : '·'} {workout.name}
+              <span style={{ fontSize: '11px', opacity: 0.7 }}>{workout.exercises.length}</span>
+            </button>
+          ))}
+          <button className="tab" onClick={() => setShowDayForm(true)} title="Nuevo día" aria-label="Nuevo día de entrenamiento">
+            <i className="ti ti-plus" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      {activeDay && <WorkoutDayCard key={activeDay.id} workout={activeDay} />}
 
       {showDayForm ? (
         <form onSubmit={handleCreateWorkout} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
@@ -230,16 +241,17 @@ function PlanCard({ plan }: { plan: any }) {
             style={{ ...inputStyle, width: '140px' }}
           />
           <button type="submit" style={primaryButtonStyle}>Crear día</button>
-          <button type="button" onClick={() => setShowDayForm(false)} style={{ ...primaryButtonStyle, background: 'transparent', color: 'var(--text-secondary)', border: '0.5px solid var(--border)' }}>
+          <button type="button" onClick={() => setShowDayForm(false)} style={secondaryButtonStyle}>
             Cancelar
           </button>
         </form>
-      ) : (
+      ) : plan.workouts.length === 0 && (
         <button
           onClick={() => setShowDayForm(true)}
-          style={{ marginTop: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-primary)', fontSize: '12px', padding: 0 }}
+          className="btn btn-ghost btn-sm"
+          style={{ marginTop: '10px', color: 'var(--accent-primary)' }}
         >
-          + Nuevo día de entrenamiento
+          <i className="ti ti-calendar-plus" aria-hidden="true" /> Nuevo día de entrenamiento
         </button>
       )}
     </div>
@@ -255,32 +267,28 @@ function ClientHistoryPanel({ clientId }: { clientId: string }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={cardStyle}>
-        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>
-          Récords personales
-        </div>
+      <div className="card">
+        <h3 className="section-title"><i className="ti ti-trophy" aria-hidden="true" /> Récords personales</h3>
         {loadingRecords ? (
-          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Cargando...</div>
+          <Loader inline />
         ) : records.length === 0 ? (
           <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Sin récords todavía</div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px' }}>
             {records.map((r: any) => (
-              <div key={r.exerciseId} style={{ background: 'var(--bg-primary)', border: '0.5px solid var(--border)', borderRadius: '8px', padding: '10px 12px' }}>
+              <div key={r.exerciseId} className="inset" style={{ padding: '10px 12px' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '4px' }}>{exerciseName(r.exerciseId)}</div>
-                <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--accent-primary)' }}>{r.maxWeight} kg x {r.reps}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '17px', fontWeight: 700, color: 'var(--accent-primary)' }}>{r.maxWeight} kg × {r.reps}</div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div style={cardStyle}>
-        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>
-          Historial de sesiones
-        </div>
+      <div className="card">
+        <h3 className="section-title"><i className="ti ti-history" aria-hidden="true" /> Historial de sesiones</h3>
         {loadingSessions ? (
-          <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Cargando...</div>
+          <Loader inline />
         ) : sessions.length === 0 ? (
           <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Este cliente todavía no ha entrenado ninguna sesión</div>
         ) : (
@@ -293,14 +301,13 @@ function ClientHistoryPanel({ clientId }: { clientId: string }) {
               })
 
               return (
-                <div key={session.id} style={{ background: 'var(--bg-primary)', border: '0.5px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
+                <div key={session.id} className="inset" style={{ padding: '12px 14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                     <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)' }}>{session.workout?.name}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
                       {new Date(session.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
                       {session.duration ? ` · ${session.duration} min` : ''}
-                      {' · '}
-                      <span style={{ color: session.completed ? 'var(--accent-primary)' : 'var(--text-tertiary)' }}>
+                      <span className={`badge ${session.completed ? 'badge-accent' : 'badge-warning'}`} style={{ marginLeft: '6px' }}>
                         {session.completed ? 'Completada' : 'En curso'}
                       </span>
                     </div>
@@ -332,32 +339,33 @@ export default function TrainerPage() {
   const { user } = useAuth()
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'plan' | 'historial' | 'chat'>('plan')
-  const [clientEmail, setClientEmail] = useState('')
+  const [showAddClient, setShowAddClient] = useState(false)
   const [planName, setPlanName] = useState('')
   const [showPlanForm, setShowPlanForm] = useState(false)
+  const [clientFilter, setClientFilter] = useState('')
 
   const { data: clients = [], isLoading: loadingClients } = useClients()
-  const addClient = useAddClient()
   const removeClient = useRemoveClient()
 
   const { data: plans = [], isLoading: loadingPlans } = useClientPlans(selectedClientId ?? undefined)
   const createPlan = useCreatePlan()
 
-  if (user?.role !== 'TRAINER') {
+  // El admin ve a todos los clientes de la plataforma; las altas y asignaciones las hace desde /admin.
+  const isAdmin = user?.role === 'ADMIN'
+
+  if (user?.role !== 'TRAINER' && !isAdmin) {
     return (
-      <div style={{ maxWidth: '600px', margin: '4rem auto', textAlign: 'center' }}>
-        <i className="ti ti-lock" style={{ fontSize: '32px', color: 'var(--text-tertiary)' }} aria-hidden="true" />
-        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-          Acceso restringido — esta sección es solo para entrenadores
-        </div>
+      <div className="page card" style={{ maxWidth: '600px', marginTop: '4rem' }}>
+        <EmptyState icon="ti-lock" title="Acceso restringido">Esta sección es solo para entrenadores</EmptyState>
       </div>
     )
   }
 
-  function handleAddClient(e: React.FormEvent) {
-    e.preventDefault()
-    addClient.mutate(clientEmail, { onSuccess: () => setClientEmail('') })
-  }
+  const filter = clientFilter.trim().toLowerCase()
+  const visibleClients = filter
+    ? clients.filter((c: any) => c.name.toLowerCase().includes(filter) || c.email.toLowerCase().includes(filter))
+    : clients
+  const tabs = isAdmin ? (['plan', 'historial'] as const) : (['plan', 'historial', 'chat'] as const)
 
   function handleCreatePlan(e: React.FormEvent) {
     e.preventDefault()
@@ -373,77 +381,75 @@ export default function TrainerPage() {
   const selectedClient = clients.find((c: any) => c.id === selectedClientId)
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-          Panel de entrenador
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Gestiona tus clientes y construye sus planes de entrenamiento
-        </p>
-      </div>
+    <div className="page" style={{ maxWidth: '1200px' }}>
+      <PageHeader
+        eyebrow={<><i className="ti ti-users" aria-hidden="true" /> {isAdmin ? 'Administración' : 'Entrenador'}</>}
+        title={isAdmin ? 'Todos los clientes' : 'Panel de entrenador'}
+        subtitle={isAdmin
+          ? 'Consulta y edita el plan y el historial de cualquier cliente de la plataforma'
+          : 'Gestiona tus clientes y construye sus planes de entrenamiento'}
+        actions={isAdmin && (
+          <Link to="/admin" className="btn btn-secondary"><i className="ti ti-shield-star" aria-hidden="true" /> Gestionar usuarios</Link>
+        )}
+      />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1.5rem', alignItems: 'flex-start' }}>
+      <div className="split-layout">
         {/* CLIENTES */}
-        <div style={cardStyle}>
-          <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '12px' }}>
-            Mis clientes
-          </div>
+        <div className="card">
+          <h2 className="section-title">
+            <i className="ti ti-users" aria-hidden="true" /> {isAdmin ? 'Clientes' : 'Mis clientes'}
+            <span className="badge" style={{ marginLeft: 'auto' }}>{clients.length}</span>
+          </h2>
 
-          <form onSubmit={handleAddClient} style={{ display: 'flex', gap: '6px', marginBottom: '14px' }}>
-            <input
-              type="email"
-              value={clientEmail}
-              onChange={e => setClientEmail(e.target.value)}
-              placeholder="email@cliente.com"
-              required
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <button type="submit" style={{ ...primaryButtonStyle, padding: '9px 12px' }}>
-              <i className="ti ti-plus" style={{ fontSize: '14px' }} aria-hidden="true" />
-            </button>
-          </form>
-          {addClient.isError && (
-            <div style={{ fontSize: '11px', color: '#E24B4A', marginBottom: '10px', marginTop: '-8px' }}>
-              No se ha podido añadir. Comprueba el email.
+          {clients.length > 6 && (
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+              <i className="ti ti-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} aria-hidden="true" />
+              <input
+                value={clientFilter}
+                onChange={e => setClientFilter(e.target.value)}
+                placeholder="Buscar cliente"
+                aria-label="Buscar cliente"
+                style={{ ...inputStyle, width: '100%', paddingLeft: '34px' }}
+              />
             </div>
           )}
 
+          {!isAdmin && (
+            <button onClick={() => setShowAddClient(true)} className="btn btn-primary btn-block" style={{ marginBottom: '12px' }}>
+              <i className="ti ti-user-plus" aria-hidden="true" /> Añadir cliente
+            </button>
+          )}
+          {showAddClient && <AddClientModal onClose={() => setShowAddClient(false)} onAdded={id => setSelectedClientId(id)} />}
+
           {loadingClients ? (
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Cargando...</div>
+            <Loader inline />
           ) : clients.length === 0 ? (
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
-              Aún no tienes clientes asignados
-            </div>
+            <EmptyState icon="ti-user-plus" title="Sin clientes">{isAdmin ? 'Da de alta clientes desde el panel' : 'Añade tu primer cliente con el botón de arriba'}</EmptyState>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {clients.map((client: any) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '60vh', overflowY: 'auto' }}>
+              {visibleClients.map((client: any) => (
                 <div
                   key={client.id}
                   onClick={() => setSelectedClientId(client.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    background: selectedClientId === client.id ? 'var(--accent-primary)' : 'transparent',
-                    color: selectedClientId === client.id ? '#fff' : 'var(--text-primary)',
-                  }}
+                  className={`list-item${selectedClientId === client.id ? ' active' : ''}`}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                    <Avatar name={client.name} photoUrl={client.profilePhoto} size={28} />
+                    <Avatar name={client.name} photoUrl={client.profilePhoto} size={34} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</div>
-                      <div style={{ fontSize: '11px', opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.email}</div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.name}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{client.email}</div>
                     </div>
                   </div>
-                  <button
+                  {!isAdmin && <button
                     onClick={e => { e.stopPropagation(); removeClient.mutate(client.id); if (selectedClientId === client.id) setSelectedClientId(null) }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', opacity: 0.7, padding: '2px', flexShrink: 0 }}
+                    className="btn-icon"
+                    style={{ width: '28px', height: '28px', flexShrink: 0 }}
                     title="Quitar cliente"
+                    aria-label="Quitar cliente"
                   >
                     <i className="ti ti-x" style={{ fontSize: '13px' }} aria-hidden="true" />
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>
@@ -453,35 +459,30 @@ export default function TrainerPage() {
         {/* PLANES DEL CLIENTE SELECCIONADO */}
         <div>
           {!selectedClientId ? (
-            <div style={{ ...cardStyle, textAlign: 'center', padding: '3rem' }}>
-              <i className="ti ti-arrow-left" style={{ fontSize: '24px', color: 'var(--text-tertiary)' }} aria-hidden="true" />
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                Selecciona un cliente para ver y editar sus planes
-              </div>
+            <div className="card">
+              <EmptyState icon="ti-hand-click" title="Selecciona un cliente">Elige un cliente de la lista para ver y editar sus planes, su historial o hablar con él</EmptyState>
             </div>
           ) : (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-primary)' }}>
-                  {selectedClient?.name}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Avatar name={selectedClient?.name} photoUrl={selectedClient?.profilePhoto} size={40} />
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>{selectedClient?.name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>{selectedClient?.email}</div>
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', borderRadius: '10px', padding: '3px' }}>
-                  {(['plan', 'historial', 'chat'] as const).map(tab => (
+                <div className="tabs" role="tablist">
+                  {tabs.map(tab => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
-                      style={{
-                        padding: '6px 14px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        background: activeTab === tab ? 'var(--accent-primary)' : 'transparent',
-                        color: activeTab === tab ? '#fff' : 'var(--text-secondary)',
-                      }}
+                      role="tab"
+                      aria-selected={activeTab === tab}
+                      className={`tab${activeTab === tab ? ' active' : ''}`}
                     >
+                      <i className={`ti ${tab === 'plan' ? 'ti-barbell' : tab === 'historial' ? 'ti-history' : 'ti-message-circle'}`} aria-hidden="true" />
                       {tab === 'plan' ? 'Plan de entrenamiento' : tab === 'historial' ? 'Historial y récords' : 'Chat'}
                     </button>
                   ))}
@@ -491,13 +492,13 @@ export default function TrainerPage() {
               {activeTab === 'plan' ? (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-                    <button onClick={() => setShowPlanForm(s => !s)} style={primaryButtonStyle}>
-                      + Nuevo plan
+                    <button onClick={() => setShowPlanForm(s => !s)} className="btn btn-primary">
+                      <i className="ti ti-plus" aria-hidden="true" /> Nuevo plan
                     </button>
                   </div>
 
                   {showPlanForm && (
-                    <form onSubmit={handleCreatePlan} style={{ ...cardStyle, display: 'flex', gap: '8px', marginBottom: '1rem' }}>
+                    <form onSubmit={handleCreatePlan} className="card card-accent" style={{ display: 'flex', gap: '8px', marginBottom: '1rem', flexWrap: 'wrap' }}>
                       <input
                         value={planName}
                         onChange={e => setPlanName(e.target.value)}
@@ -510,10 +511,10 @@ export default function TrainerPage() {
                   )}
 
                   {loadingPlans ? (
-                    <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>Cargando planes...</div>
+                    <Loader inline label="Cargando planes..." />
                   ) : plans.length === 0 ? (
-                    <div style={{ ...cardStyle, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '13px' }}>
-                      Este cliente todavía no tiene ningún plan
+                    <div className="card">
+                      <EmptyState icon="ti-calendar-off" title="Sin planes">Este cliente todavía no tiene ningún plan</EmptyState>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

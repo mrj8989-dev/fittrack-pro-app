@@ -7,23 +7,8 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, CartesianGrid, ReferenceLine
 } from 'recharts'
-
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      border: '0.5px solid var(--border)',
-      borderRadius: '12px',
-      padding: '1rem 1.25rem',
-    }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '22px', fontWeight: 500, color: 'var(--text-primary)' }}>{value}</div>
-      {sub && <div style={{ fontSize: '12px', color: 'var(--accent-primary)', marginTop: '4px' }}>{sub}</div>}
-    </div>
-  )
-}
+import { EmptyState, Loader, PageHeader, StatCard } from '../components/ui'
+import { chartTooltipStyle } from '../lib/chart'
 
 export default function ProgressPage() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('')
@@ -63,43 +48,25 @@ export default function ProgressPage() {
   })
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="page" style={{ maxWidth: '1200px' }}>
 
-      {/* HEADER */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '4px' }}>
-          Progreso
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-          Evolución de fuerza y volumen por ejercicio
-        </p>
-      </div>
+      <PageHeader
+        eyebrow={<><i className="ti ti-chart-line" aria-hidden="true" /> Progreso</>}
+        title="Tu evolución"
+        subtitle="Fuerza y volumen por ejercicio, y tus récords agrupados por grupo muscular"
+      />
 
       {/* SELECTOR DE EJERCICIO */}
-      <div style={{
-        background: 'var(--bg-secondary)',
-        border: '0.5px solid var(--border)',
-        borderRadius: '12px',
-        padding: '1.25rem',
+      <div className="card" style={{
         marginBottom: '1.5rem',
       }}>
-        <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '10px' }}>
+        <div className="section-title">
           Selecciona un ejercicio para ver su progreso
         </div>
         <select
           value={selectedExerciseId}
           onChange={e => setSelectedExerciseId(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            background: 'var(--bg-primary)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '8px',
-            color: 'var(--text-primary)',
-            fontSize: '14px',
-            outline: 'none',
-            cursor: 'pointer',
-          }}
+          className="input"
         >
           <option value="">— Elige un ejercicio —</option>
           {Object.entries(
@@ -122,25 +89,12 @@ export default function ProgressPage() {
       {selectedExerciseId && (
         <>
           {loadingProgress ? (
-            <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '2rem' }}>
-              Cargando progreso...
-            </div>
+            <Loader inline label="Cargando progreso..." />
           ) : progress.length === 0 ? (
-            <div style={{
-              background: 'var(--bg-secondary)',
-              border: '0.5px solid var(--border)',
-              borderRadius: '12px',
-              padding: '2rem',
-              textAlign: 'center',
-              marginBottom: '1.5rem',
-            }}>
-              <i className="ti ti-chart-line" style={{ fontSize: '32px', color: 'var(--text-tertiary)', display: 'block', marginBottom: '8px' }} aria-hidden="true" />
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                Aún no hay datos para {selectedExercise?.name}
-              </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
+              <EmptyState icon="ti-chart-line" title={`Aún no hay datos para ${selectedExercise?.name ?? 'este ejercicio'}`}>
                 Registra sesiones con este ejercicio para ver tu progreso
-              </div>
+              </EmptyState>
             </div>
           ) : (
             <>
@@ -151,10 +105,11 @@ export default function ProgressPage() {
                 gap: '12px',
                 marginBottom: '1.5rem',
               }}>
-                <StatCard label="Récord máximo" value={`${maxWeight} kg`} sub="peso levantado" />
-                <StatCard label="Mejora total" value={improvement ? `+${improvement}%` : '—'} sub="desde el inicio" />
-                <StatCard label="Sesiones" value={String(totalSessions)} sub="con este ejercicio" />
+                <StatCard icon="ti-trophy" label="Récord máximo" value={`${maxWeight} kg`} sub="peso levantado" />
+                <StatCard icon="ti-trending-up" label="Mejora total" value={improvement ? `+${improvement}%` : '—'} sub="desde el inicio" />
+                <StatCard icon="ti-calendar-check" label="Sesiones" value={String(totalSessions)} sub="con este ejercicio" />
                 <StatCard
+                  icon="ti-clock"
                   label="Último registro"
                   value={progress.length > 0 ? `${progress[progress.length - 1].weight} kg` : '—'}
                   sub={progress.length > 0 ? new Date(progress[progress.length - 1].date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : ''}
@@ -162,14 +117,10 @@ export default function ProgressPage() {
               </div>
 
               {/* Gráfica de peso */}
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '0.5px solid var(--border)',
-                borderRadius: '12px',
-                padding: '1.25rem',
+              <div className="card" style={{
                 marginBottom: '1.5rem',
               }}>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                <div className="section-title">
                   Evolución del peso — {selectedExercise?.name}
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
@@ -178,7 +129,7 @@ export default function ProgressPage() {
                     <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
+                      contentStyle={chartTooltipStyle}
                       formatter={(v: any) => [`${v} kg`, 'Peso']}
                     />
                     <ReferenceLine y={maxWeight} stroke="var(--accent-primary)" strokeDasharray="4 4" label={{ value: 'Récord', fill: 'var(--accent-primary)', fontSize: 11 }} />
@@ -188,14 +139,10 @@ export default function ProgressPage() {
               </div>
 
               {/* Gráfica de volumen */}
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '0.5px solid var(--border)',
-                borderRadius: '12px',
-                padding: '1.25rem',
+              <div className="card" style={{
                 marginBottom: '1.5rem',
               }}>
-                <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                <div className="section-title">
                   Volumen por sesión (kg × reps) — {selectedExercise?.name}
                 </div>
                 <ResponsiveContainer width="100%" height={160}>
@@ -204,10 +151,10 @@ export default function ProgressPage() {
                     <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
                     <Tooltip
-                      contentStyle={{ background: 'var(--bg-secondary)', border: '0.5px solid var(--border)', borderRadius: '8px', fontSize: '12px' }}
+                      contentStyle={chartTooltipStyle}
                       formatter={(v: any) => [`${v} kg`, 'Volumen']}
                     />
-                    <Line type="monotone" dataKey="volumen" stroke="#7F77DD" strokeWidth={2} dot={{ fill: '#7F77DD', r: 3 }} activeDot={{ r: 5 }} />
+                    <Line type="monotone" dataKey="volumen" stroke="var(--info)" strokeWidth={2} dot={{ fill: 'var(--info)', r: 3 }} activeDot={{ r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -218,23 +165,15 @@ export default function ProgressPage() {
 
       {/* RÉCORDS POR GRUPO MUSCULAR */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', marginBottom: '1rem' }}>
+        <h2 className="section-title"><i className="ti ti-trophy" aria-hidden="true" />
           Récords personales por grupo muscular
         </h2>
 
         {loadingRecords ? (
-          <div style={{ color: 'var(--text-tertiary)', fontSize: '13px' }}>Cargando récords...</div>
+          <Loader inline label="Cargando récords..." />
         ) : records.length === 0 ? (
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '0.5px solid var(--border)',
-            borderRadius: '12px',
-            padding: '2rem',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-              Aún no tienes récords. ¡Empieza a entrenar!
-            </div>
+          <div className="card">
+            <EmptyState icon="ti-trophy" title="Aún no tienes récords">¡Empieza a entrenar para conseguir los primeros!</EmptyState>
           </div>
         ) : (
           <div style={{
@@ -243,12 +182,7 @@ export default function ProgressPage() {
             gap: '12px',
           }}>
             {Object.entries(recordsByMuscle).map(([group, recs]) => (
-              <div key={group} style={{
-                background: 'var(--bg-secondary)',
-                border: '0.5px solid var(--border)',
-                borderRadius: '12px',
-                padding: '1.25rem',
-              }}>
+              <div key={group} className="card">
                 <div style={{ fontSize: '12px', fontWeight: 500, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
                   {group}
                 </div>
@@ -269,7 +203,7 @@ export default function ProgressPage() {
                             {rec.maxWeight} kg
                           </span>
                         </div>
-                        <div style={{ height: '4px', background: 'var(--border)', borderRadius: '2px' }}>
+                        <div className="progress">
                           <div style={{
                             height: '4px',
                             width: `${pct}%`,

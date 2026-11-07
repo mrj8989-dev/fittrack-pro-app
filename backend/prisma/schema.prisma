@@ -41,6 +41,11 @@ model User {
 
   sentMessages     Message[]        @relation("SentMessages")
   receivedMessages Message[]        @relation("ReceivedMessages")
+
+  customFoods      Food[]           @relation("CustomFoods")
+  nutritionProfile NutritionProfile?
+  mealPlans        MealPlan[]
+  assignedMealPlans MealPlan[]      @relation("AssignedMealPlans")
 }
 
 model Exercise {
@@ -145,4 +150,107 @@ model Message {
   content    String
   read       Boolean  @default(false)
   createdAt  DateTime @default(now())
+}
+// ── NUTRICIÓN ─────────────────────────────────────────────────────
+
+enum FoodGroup {
+  PROTEIN
+  CARBS
+  FATS
+  VEGETABLES
+  FRUITS
+  OTHER
+}
+
+enum Sex {
+  MALE
+  FEMALE
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum NutritionGoal {
+  LOSE_FAT
+  MAINTAIN
+  RECOMP
+  GAIN_MUSCLE
+}
+
+// Catálogo común de alimentos, valores por 100 g en crudo. createdById = entrenador o admin
+// que lo añadió (null = alimentos base del seed, que solo edita el admin).
+model Food {
+  id           String    @id @default(uuid())
+  name         String
+  group        FoodGroup
+  kcal         Float
+  protein      Float
+  carbs        Float
+  fat          Float
+  unitName     String?
+  gramsPerUnit Float?
+  createdById  String?
+  createdBy    User?     @relation("CustomFoods", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now())
+
+  mealItems    MealItem[]
+}
+
+model NutritionProfile {
+  id            String        @id @default(uuid())
+  userId        String        @unique
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sex           Sex
+  birthDate     DateTime
+  heightCm      Float
+  // Solo se usa si el usuario no tiene ninguna revisión corporal con peso.
+  weightKg      Float?
+  activityLevel ActivityLevel
+  goal          NutritionGoal
+  updatedAt     DateTime      @updatedAt
+}
+
+// Menú semanal.
+// - isTemplate = false: menú de un cliente (userId = el cliente).
+// - isTemplate = true: plantilla que se copia o se asigna. userId = entrenador que la creó,
+//   o null para las plantillas globales (las gestiona el ADMIN).
+model MealPlan {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  isTemplate   Boolean  @default(false)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Entrenador que asignó este menú al cliente (null si lo creó el propio cliente).
+  assignedById String?
+  assignedBy   User?    @relation("AssignedMealPlans", fields: [assignedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  meals       Meal[]
+}
+
+model Meal {
+  id         String   @id @default(uuid())
+  mealPlanId String
+  mealPlan   MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  dayOfWeek  Int
+  name       String
+  order      Int
+
+  items      MealItem[]
+}
+
+model MealItem {
+  id     String @id @default(uuid())
+  mealId String
+  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  foodId String
+  food   Food   @relation(fields: [foodId], references: [id])
+  grams  Float
 }

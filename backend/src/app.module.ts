@@ -11,6 +11,8 @@ import { WorkoutsModule } from './workouts/workouts.module';
 import { WorkoutSessionsModule } from './workout-sessions/workout-sessions.module';
 import { BodyRevisionsModule } from './body-revisions/body-revisions.module';
 import { MessagesModule } from './messages/messages.module';
+import { NutritionModule } from './nutrition/nutrition.module';
+import { AdminModule } from './admin/admin.module';
 
 
 @Module({
@@ -28,7 +30,9 @@ import { MessagesModule } from './messages/messages.module';
     WorkoutsModule,
     WorkoutSessionsModule,
     BodyRevisionsModule,
-    MessagesModule
+    MessagesModule,
+    NutritionModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
