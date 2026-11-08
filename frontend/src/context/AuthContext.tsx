@@ -8,6 +8,8 @@ interface User {
   role: string
   profilePhoto?: string | null
   mustChangePassword?: boolean
+  /** Solo clientes: FREE, PRO o PREMIUM. */
+  subscriptionPlan?: string | null
 }
 
 export interface AuthSession {
@@ -41,6 +43,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedToken && savedUser) {
       setToken(savedToken)
       setUser(JSON.parse(savedUser))
+      // Refresca rol y plan por si un admin los ha cambiado desde el último inicio de sesión.
+      api.get<User>('/auth/me')
+        .then(({ data }) => {
+          setUser(data)
+          localStorage.setItem('ft-user', JSON.stringify(data))
+        })
+        .catch(() => { /* 401 lo gestiona el interceptor; otros errores: seguimos con lo guardado */ })
     }
     setIsLoading(false)
   }, [])

@@ -8,10 +8,13 @@ import { CreateWorkoutPlanDto } from './dto/create-workout-plan.dto';
 import { UpdateWorkoutPlanDto } from './dto/update-workout-plan.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { FeatureGuard } from '../access/feature.guard';
+import { RequiresFeature } from '../access/requires-feature.decorator';
 
 @ApiTags('workout-plans')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
+@RequiresFeature('training')
 @Controller('workout-plans')
 export class WorkoutPlansController {
   constructor(private workoutPlansService: WorkoutPlansService) {}

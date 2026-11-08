@@ -35,17 +35,17 @@ async function main() {
     },
   });
 
-  // El usuario demo es un CLIENT con entrenador asignado. El `update` migra
-  // bases de datos antiguas donde demo@ se creó como ADMIN.
+  // El usuario demo es un CLIENT PREMIUM (entrenador + nutrición) para enseñar toda la app.
+  // El `update` migra bases de datos antiguas donde demo@ se creó como ADMIN o PRO.
   const user = await prisma.user.upsert({
     where: { email: 'demo@fittrack.com' },
-    update: { role: 'CLIENT', name: 'Demo Cliente', trainerId: trainer.id },
+    update: { role: 'CLIENT', name: 'Demo Cliente', trainerId: trainer.id, subscriptionPlan: 'PREMIUM' },
     create: {
       email: 'demo@fittrack.com',
       password: hashedPassword,
       name: 'Demo Cliente',
       role: 'CLIENT',
-      subscriptionPlan: 'PRO',
+      subscriptionPlan: 'PREMIUM',
       revisionInterval: 14,
       trainerId: trainer.id,
     },

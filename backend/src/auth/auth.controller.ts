@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   HttpCode,
@@ -39,6 +40,14 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Credenciales incorrectas' })
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Usuario autenticado (rol, plan, foto...)' })
+  me(@CurrentUser() user: Parameters<AuthService['me']>[0]) {
+    return this.authService.me(user);
   }
 
   @Post('change-password')

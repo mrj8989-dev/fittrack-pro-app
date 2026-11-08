@@ -10,6 +10,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
+import { FeatureGuard } from '../access/feature.guard';
+import { RequiresFeature } from '../access/requires-feature.decorator';
 
 const photoStorage = diskStorage({
   destination: './public/uploads',
@@ -21,7 +23,7 @@ const photoStorage = diskStorage({
 
 @ApiTags('users')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
 @Roles(Role.TRAINER)
 @Controller('users')
 export class UsersController {
@@ -56,6 +58,7 @@ export class UsersController {
 
   @Get('my-trainer')
   @Roles(Role.CLIENT)
+  @RequiresFeature('trainer')
   @ApiOperation({ summary: 'Obtener el entrenador asignado al cliente autenticado (o null)' })
   findMyTrainer(@CurrentUser() user: any) {
     return this.usersService.findMyTrainer(user.trainerId);

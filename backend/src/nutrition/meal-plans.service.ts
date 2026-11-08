@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { hasFeature } from '../access/plan-features';
 import { Food, FoodGroup, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FoodsService } from './foods.service';
@@ -143,6 +144,15 @@ export class MealPlansService {
   async assign(id: string, dto: AssignMealPlanDto, user: AuthUser) {
     const source = await this.loadReadable(id, user);
     const clientId = await this.resolveClientId(user, dto.clientId);
+    const client = await this.prisma.user.findUnique({
+      where: { id: clientId },
+      select: { role: true, subscriptionPlan: true },
+    });
+    if (client && !hasFeature(client, 'nutrition')) {
+      throw new ForbiddenException(
+        'Los menús solo se pueden asignar a clientes con el plan PREMIUM',
+      );
+    }
 
     const copy = await this.copyPlan(source, {
       isTemplate: false,

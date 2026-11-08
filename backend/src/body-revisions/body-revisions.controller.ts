@@ -14,6 +14,8 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
+import { FeatureGuard } from '../access/feature.guard';
+import { RequiresFeature } from '../access/requires-feature.decorator';
 
 const storage = diskStorage({
   destination: './public/uploads',
@@ -25,8 +27,9 @@ const storage = diskStorage({
 
 @ApiTags('body-revisions')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
 @Roles(Role.CLIENT)
+@RequiresFeature('revisions')
 @Controller('body-revisions')
 export class BodyRevisionsController {
   constructor(private bodyRevisionsService: BodyRevisionsService) {}

@@ -11,6 +11,7 @@ import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
+import { canHaveTrainer } from '../access/plan-features';
 import { AdminCreateUserDto } from './dto/create-user.dto';
 import { AdminUpdateUserDto } from './dto/update-user.dto';
 
@@ -169,6 +170,10 @@ export class AdminService {
         throw new BadRequestException(
           'Solo los clientes pueden tener entrenador',
         );
+      if (!canHaveTrainer(dto.subscriptionPlan ?? 'FREE'))
+        throw new BadRequestException(
+          'Solo los clientes PRO o PREMIUM pueden tener entrenador',
+        );
       await this.assertTrainer(dto.trainerId);
     }
 
@@ -206,6 +211,7 @@ export class AdminService {
       await this.assertEmailFree(dto.email);
 
     const nextRole = dto.role ?? user.role;
+    const nextPlan = dto.subscriptionPlan ?? user.subscriptionPlan;
     const data: Prisma.UserUncheckedUpdateInput = {
       name: dto.name,
       email: dto.email?.toLowerCase(),
@@ -226,10 +232,17 @@ export class AdminService {
           throw new BadRequestException(
             'Solo los clientes pueden tener entrenador',
           );
+        if (!canHaveTrainer(nextPlan))
+          throw new BadRequestException(
+            'Solo los clientes PRO o PREMIUM pueden tener entrenador',
+          );
         await this.assertTrainer(dto.trainerId);
       }
       data.trainerId = dto.trainerId;
     }
+    // Un cliente que baja a FREE pierde el entrenador (sus datos se conservan).
+    if (nextRole === Role.CLIENT && !canHaveTrainer(nextPlan))
+      data.trainerId = null;
     // Un usuario que deja de ser cliente no puede seguir colgando de un entrenador.
     if (nextRole !== Role.CLIENT) data.trainerId = null;
 

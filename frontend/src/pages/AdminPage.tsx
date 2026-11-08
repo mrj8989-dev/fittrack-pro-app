@@ -11,6 +11,7 @@ import Avatar from '../components/Avatar'
 import { EmptyState, Loader, Modal, ProgressBar, StatCard } from '../components/ui'
 import { chartTooltipStyle } from '../lib/chart'
 import { ROLE_LABEL } from '../lib/roleAccess'
+import { canHaveTrainer } from '../lib/planAccess'
 import type { Role } from '../lib/roleAccess'
 
 const ROLES: Role[] = ['CLIENT', 'TRAINER', 'ADMIN']
@@ -69,7 +70,8 @@ function UserFormModal({ user, trainers, onClose }: {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const trainerId = form.role === 'CLIENT' && form.trainerId ? form.trainerId : undefined
+    const withTrainer = form.role === 'CLIENT' && canHaveTrainer(form.subscriptionPlan)
+    const trainerId = withTrainer && form.trainerId ? form.trainerId : undefined
 
     if (isEdit) {
       const patch: AdminUserPatch & { id: string } = {
@@ -79,7 +81,7 @@ function UserFormModal({ user, trainers, onClose }: {
         role: form.role,
         subscriptionPlan: form.subscriptionPlan,
         revisionInterval: Number(form.revisionInterval),
-        trainerId: form.role === 'CLIENT' ? (form.trainerId || null) : null,
+        trainerId: withTrainer ? (form.trainerId || null) : null,
         active: form.active,
       }
       if (form.password) {
@@ -156,17 +158,24 @@ function UserFormModal({ user, trainers, onClose }: {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginTop: '14px' }}>
-          <div>
+          {form.role === 'CLIENT' && <div>
             <label className="label" htmlFor="u-plan">Plan</label>
             <select id="u-plan" className="input" value={form.subscriptionPlan} onChange={e => set('subscriptionPlan', e.target.value as SubscriptionPlan)}>
               {PLANS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
-          </div>
+          </div>}
           {form.role === 'CLIENT' && (
             <div>
               <label className="label" htmlFor="u-trainer">Entrenador</label>
-              <select id="u-trainer" className="input" value={form.trainerId} onChange={e => set('trainerId', e.target.value)}>
-                <option value="">Sin entrenador</option>
+              <select
+                id="u-trainer"
+                className="input"
+                value={canHaveTrainer(form.subscriptionPlan) ? form.trainerId : ''}
+                onChange={e => set('trainerId', e.target.value)}
+                disabled={!canHaveTrainer(form.subscriptionPlan)}
+                title={canHaveTrainer(form.subscriptionPlan) ? undefined : 'Solo los clientes PRO o PREMIUM tienen entrenador'}
+              >
+                <option value="">{canHaveTrainer(form.subscriptionPlan) ? 'Sin entrenador' : 'Requiere plan PRO'}</option>
                 {trainers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
@@ -225,6 +234,12 @@ function UserFormModal({ user, trainers, onClose }: {
           </div>
         )}
 
+        {isEdit && user.trainerId && form.role === 'CLIENT' && !canHaveTrainer(form.subscriptionPlan) && (
+          <div className="alert" style={{ marginTop: '14px', background: 'var(--warning-soft)', color: 'var(--warning)' }}>
+            <i className="ti ti-alert-triangle" aria-hidden="true" />
+            Con el plan {form.subscriptionPlan} dejará de tener entrenador ({user.trainer?.name}). Sus datos se conservan.
+          </div>
+        )}
         {isEdit && user.role === 'TRAINER' && form.role !== 'TRAINER' && user._count.trainerClients > 0 && (
           <div className="alert" style={{ marginTop: '14px', background: 'var(--warning-soft)', color: 'var(--warning)' }}>
             <i className="ti ti-alert-triangle" aria-hidden="true" />
@@ -360,7 +375,11 @@ function UsersManager({ trainers, onEdit, counts }: {
               </div>
 
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', minWidth: 0 }}>
-                {u.role === 'CLIENT' ? (
+                {u.role === 'CLIENT' && !canHaveTrainer(u.subscriptionPlan) ? (
+                  <span style={{ color: 'var(--text-tertiary)' }} title="Solo los clientes PRO o PREMIUM tienen entrenador">
+                    <i className="ti ti-lock" aria-hidden="true" /> Sin entrenador (FREE)
+                  </span>
+                ) : u.role === 'CLIENT' ? (
                   <select
                     className="input"
                     value={u.trainerId ?? ''}

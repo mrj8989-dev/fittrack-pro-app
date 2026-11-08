@@ -4,10 +4,13 @@ import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { FeatureGuard } from '../access/feature.guard';
+import { RequiresFeature } from '../access/requires-feature.decorator';
 
 @ApiTags('messages')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
+@RequiresFeature('trainer')
 @Controller('messages')
 export class MessagesController {
   constructor(private messagesService: MessagesService) {}

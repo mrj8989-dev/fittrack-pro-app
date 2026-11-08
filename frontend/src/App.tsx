@@ -14,7 +14,9 @@ import ChatPage from './pages/ChatPage'
 import NutritionPage from './pages/NutritionPage'
 import AdminPage from './pages/AdminPage'
 import ForcePasswordChangePage from './pages/ForcePasswordChangePage'
-import { canAccess, homePathFor } from './lib/roleAccess'
+import PlansPage from './pages/PlansPage'
+import { canAccess, featureForPath, homePathFor } from './lib/roleAccess'
+import { hasFeature } from './lib/planAccess'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -29,12 +31,16 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-// Si el rol no tiene acceso a la ruta, lo manda a su página de inicio.
+// Si el rol no tiene acceso a la ruta, lo manda a su página de inicio. Si es un cliente cuyo
+// plan no incluye el módulo, le enseña los planes (en el inicio, sin el aviso de "bloqueado").
 function RoleRoute({ path, children }: { path: string; children: React.ReactNode }) {
   const { user } = useAuth()
-  return canAccess(user?.role, path)
-    ? <>{children}</>
-    : <Navigate to={homePathFor(user?.role)} replace />
+  if (!canAccess(user?.role, path)) return <Navigate to={homePathFor(user?.role)} replace />
+  const feature = featureForPath(path)
+  if (feature && !hasFeature(user, feature)) {
+    return <PlansPage key={path} lockedFeature={path === '/' ? undefined : feature} />
+  }
+  return <>{children}</>
 }
 
 export default function App() {
@@ -58,6 +64,7 @@ export default function App() {
         <Route path="ejercicios" element={<RoleRoute path="/ejercicios"><ExercisesPage /></RoleRoute>} />
         <Route path="chat" element={<RoleRoute path="/chat"><ChatPage /></RoleRoute>} />
         <Route path="admin" element={<RoleRoute path="/admin"><AdminPage /></RoleRoute>} />
+        <Route path="planes" element={<RoleRoute path="/planes"><PlansPage /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/landing" replace />} />
     </Routes>

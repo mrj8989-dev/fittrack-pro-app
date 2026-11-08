@@ -39,11 +39,14 @@ import {
   SwapMealItemDto,
   UpdateMealItemDto,
 } from './dto/meal-plan.dto';
+import { FeatureGuard } from '../access/feature.guard';
+import { RequiresFeature } from '../access/requires-feature.decorator';
 
 @ApiTags('nutrition')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
 @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
+@RequiresFeature('nutrition')
 @Controller('foods')
 export class FoodsController {
   constructor(private foodsService: FoodsService) {}
@@ -92,8 +95,9 @@ export class FoodsController {
 
 @ApiTags('nutrition')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
 @Roles(Role.CLIENT)
+@RequiresFeature('nutrition')
 @Controller('nutrition/profile')
 export class NutritionProfileController {
   constructor(private profileService: NutritionProfileService) {}
@@ -123,8 +127,9 @@ export class NutritionProfileController {
 
 @ApiTags('nutrition')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, FeatureGuard)
 @Roles(Role.TRAINER, Role.ADMIN)
+@RequiresFeature('nutrition')
 @Controller('meal-plans')
 export class MealPlansController {
   constructor(private mealPlansService: MealPlansService) {}
