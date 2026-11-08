@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useAuth } from '../context/AuthContext'
 import {
-  useAdminStats, useAdminUsers, useCreateUser, useUpdateUser,
+  useAdminStats, useAdminUsers, useCreateUser, useUpdateUser, useDeleteUser,
 } from '../hooks/useAdmin'
 import { apiErrorMessage } from '../lib/apiError'
 import type { AdminUser, AdminUserPatch, SubscriptionPlan } from '../hooks/useAdmin'
@@ -21,6 +21,20 @@ const ROLE_ICON: Record<Role, string> = { ADMIN: 'ti-shield-star', TRAINER: 'ti-
 const PLAN_BADGE: Record<SubscriptionPlan, string> = { FREE: '', PRO: 'badge-accent', PREMIUM: 'badge-warning' }
 
 type RoleFilter = Role | 'ALL'
+type StatusFilter = 'all' | 'active' | 'inactive'
+
+const formatDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+/** "hace 3 días" o la fecha, para la columna de último acceso. */
+function lastSeen(iso: string | null) {
+  if (!iso) return 'Nunca ha entrado'
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (days <= 0) return 'Hoy'
+  if (days === 1) return 'Ayer'
+  if (days < 30) return `Hace ${days} días`
+  return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 
 // ─────────────────────────────────────────────────────────────
 // Formulario de alta / edición (modal)
@@ -32,9 +46,13 @@ function UserFormModal({ user, trainers, onClose }: {
   onClose: () => void
 }) {
   const isEdit = !!user
+  const { user: me } = useAuth()
+  const isSelf = isEdit && user.id === me?.id
   const createUser = useCreateUser()
   const updateUser = useUpdateUser()
+  const deleteUser = useDeleteUser()
   const mutation = isEdit ? updateUser : createUser
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: user?.name ?? '',
@@ -44,6 +62,8 @@ function UserFormModal({ user, trainers, onClose }: {
     subscriptionPlan: (user?.subscriptionPlan ?? 'FREE') as SubscriptionPlan,
     trainerId: user?.trainerId ?? '',
     revisionInterval: user?.revisionInterval ?? 14,
+    active: user?.active ?? true,
+    mustChangePassword: true,
   })
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm(f => ({ ...f, [key]: value }))
 
@@ -60,8 +80,12 @@ function UserFormModal({ user, trainers, onClose }: {
         subscriptionPlan: form.subscriptionPlan,
         revisionInterval: Number(form.revisionInterval),
         trainerId: form.role === 'CLIENT' ? (form.trainerId || null) : null,
+        active: form.active,
       }
-      if (form.password) patch.password = form.password
+      if (form.password) {
+        patch.password = form.password
+        patch.mustChangePassword = form.mustChangePassword
+      }
       updateUser.mutate(patch, { onSuccess: onClose })
     } else {
       createUser.mutate({
@@ -71,6 +95,7 @@ function UserFormModal({ user, trainers, onClose }: {
         role: form.role,
         subscriptionPlan: form.subscriptionPlan,
         trainerId,
+        mustChangePassword: form.mustChangePassword,
       }, { onSuccess: onClose })
     }
   }
@@ -167,12 +192,45 @@ function UserFormModal({ user, trainers, onClose }: {
             minLength={6}
             placeholder={isEdit ? 'Déjala vacía para no cambiarla' : 'Mínimo 6 caracteres'}
           />
+          {(!isEdit || form.password) && (
+            <label className="check">
+              <input type="checkbox" checked={form.mustChangePassword} onChange={e => set('mustChangePassword', e.target.checked)} />
+              Pedir que la cambie en su próximo acceso
+            </label>
+          )}
+          {isEdit && user.mustChangePassword && !form.password && (
+            <p style={{ fontSize: '12px', color: 'var(--warning)', marginTop: '6px' }}>
+              <i className="ti ti-key" aria-hidden="true" /> Tiene pendiente cambiar su contraseña provisional
+            </p>
+          )}
         </div>
+
+        {isEdit && !isSelf && (
+          <div className="inset" style={{ marginTop: '14px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                Cuenta {form.active ? 'activa' : 'desactivada'}
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                {form.active
+                  ? 'Desactivarla impide iniciar sesión, pero conserva todo su historial.'
+                  : 'No puede iniciar sesión. Sus datos se conservan.'}
+                {user.lastLoginAt && <> · Último acceso: {formatDateTime(user.lastLoginAt)}</>}
+              </div>
+            </div>
+            <button type="button" className={`btn btn-sm ${form.active ? 'btn-secondary' : 'btn-primary'}`} onClick={() => set('active', !form.active)}>
+              <i className={`ti ${form.active ? 'ti-user-off' : 'ti-user-check'}`} aria-hidden="true" />
+              {form.active ? 'Desactivar' : 'Reactivar'}
+            </button>
+          </div>
+        )}
 
         {isEdit && user.role === 'TRAINER' && form.role !== 'TRAINER' && user._count.trainerClients > 0 && (
           <div className="alert" style={{ marginTop: '14px', background: 'var(--warning-soft)', color: 'var(--warning)' }}>
             <i className="ti ti-alert-triangle" aria-hidden="true" />
-            Sus {user._count.trainerClients} clientes quedarán sin entrenador asignado.
+            {user._count.trainerClients === 1
+              ? 'Su cliente quedará sin entrenador asignado.'
+              : `Sus ${user._count.trainerClients} clientes quedarán sin entrenador asignado.`}
           </div>
         )}
         {mutation.isError && (
@@ -181,7 +239,39 @@ function UserFormModal({ user, trainers, onClose }: {
           </div>
         )}
 
+        {isEdit && !isSelf && confirmDelete !== null && (
+          <div className="danger-zone">
+            <div style={{ fontSize: '13px', fontWeight: 700 }}>
+              <i className="ti ti-alert-triangle" aria-hidden="true" /> Eliminar definitivamente
+            </div>
+            <p style={{ fontSize: '12px', lineHeight: 1.5, margin: '4px 0 10px' }}>
+              Se borrarán su perfil, planes, sesiones, revisiones con fotos, menús y mensajes. No se puede deshacer.
+              {user.role === 'TRAINER' && user._count.trainerClients > 0 && (user._count.trainerClients === 1
+                ? ' Su cliente quedará sin entrenador.'
+                : ` Sus ${user._count.trainerClients} clientes quedarán sin entrenador.`)}
+              {' '}Escribe <strong>{user.email}</strong> para confirmar.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <input className="input" style={{ flex: '1 1 220px' }} value={confirmDelete} onChange={e => setConfirmDelete(e.target.value)} placeholder={user.email} aria-label="Confirmar email" autoFocus />
+              <button
+                type="button"
+                className="btn btn-danger"
+                disabled={confirmDelete.trim().toLowerCase() !== user.email.toLowerCase() || deleteUser.isPending}
+                onClick={() => deleteUser.mutate(user.id, { onSuccess: onClose })}
+              >
+                <i className="ti ti-trash" aria-hidden="true" /> {deleteUser.isPending ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+            {deleteUser.isError && <p className="field-error">{apiErrorMessage(deleteUser.error)}</p>}
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '1.5rem' }}>
+          {isEdit && !isSelf && confirmDelete === null && (
+            <button type="button" className="btn btn-ghost" style={{ marginRight: 'auto', color: 'var(--danger)' }} onClick={() => setConfirmDelete('')}>
+              <i className="ti ti-trash" aria-hidden="true" /> Eliminar usuario
+            </button>
+          )}
           <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button type="submit" className="btn btn-primary" disabled={mutation.isPending}>
             <i className={`ti ${isEdit ? 'ti-device-floppy' : 'ti-user-plus'}`} aria-hidden="true" />
@@ -204,9 +294,11 @@ function UsersManager({ trainers, onEdit, counts }: {
 }) {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('ALL')
   const [search, setSearch] = useState('')
+  const [status, setStatus] = useState<StatusFilter>('all')
   const { data: users = [], isLoading } = useAdminUsers({
     role: roleFilter === 'ALL' ? undefined : roleFilter,
     search: search || undefined,
+    active: status === 'all' ? undefined : status === 'active',
   })
   const updateUser = useUpdateUser()
 
@@ -228,9 +320,16 @@ function UsersManager({ trainers, onEdit, counts }: {
             </button>
           ))}
         </div>
-        <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '320px' }}>
+        <div style={{ display: 'flex', gap: '8px', flex: '1 1 340px', justifyContent: 'flex-end' }}>
+        <select className="input" value={status} onChange={e => setStatus(e.target.value as StatusFilter)} aria-label="Estado de la cuenta" style={{ width: 'auto', flex: '0 0 auto' }}>
+          <option value="all">Todas las cuentas</option>
+          <option value="active">Activas</option>
+          <option value="inactive">Desactivadas</option>
+        </select>
+        <div style={{ position: 'relative', flex: '1 1 200px', maxWidth: '300px' }}>
           <i className="ti ti-search" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} aria-hidden="true" />
           <input className="input" placeholder="Buscar por nombre o email" value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} aria-label="Buscar usuarios" />
+        </div>
         </div>
       </div>
 
@@ -241,18 +340,23 @@ function UsersManager({ trainers, onEdit, counts }: {
       ) : (
         <div className="admin-users-list">
           {users.map(u => (
-            <div key={u.id} className="user-row">
+            <div key={u.id} className={`user-row${u.active ? '' : ' inactive'}`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                 <Avatar name={u.name} photoUrl={u.profilePhoto} size={40} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '1px' }} title={u.lastLoginAt ? formatDateTime(u.lastLoginAt) : undefined}>
+                    <i className="ti ti-clock" aria-hidden="true" /> {lastSeen(u.lastLoginAt)}
+                  </div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                 <span className={`badge ${ROLE_BADGE[u.role]}`}><i className={`ti ${ROLE_ICON[u.role]}`} aria-hidden="true" /> {ROLE_LABEL[u.role]}</span>
                 {u.role === 'CLIENT' && <span className={`badge ${PLAN_BADGE[u.subscriptionPlan]}`}>{u.subscriptionPlan}</span>}
+                {!u.active && <span className="badge badge-danger"><i className="ti ti-user-off" aria-hidden="true" /> Desactivada</span>}
+                {u.active && u.mustChangePassword && <span className="badge badge-warning" title="Tiene que cambiar su contraseña provisional"><i className="ti ti-key" aria-hidden="true" /></span>}
               </div>
 
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', minWidth: 0 }}>

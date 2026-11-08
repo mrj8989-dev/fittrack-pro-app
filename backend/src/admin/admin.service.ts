@@ -1,11 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { AdminCreateUserDto } from './dto/create-user.dto';
 import { AdminUpdateUserDto } from './dto/update-user.dto';
@@ -20,6 +24,9 @@ const userSelect = {
   revisionInterval: true,
   profilePhoto: true,
   createdAt: true,
+  active: true,
+  lastLoginAt: true,
+  mustChangePassword: true,
   trainerId: true,
   trainer: { select: { id: true, name: true } },
   _count: {
@@ -36,6 +43,8 @@ const DAY = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class AdminService {
+  private readonly logger = new Logger(AdminService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async getStats() {
@@ -55,6 +64,7 @@ export class AdminService {
       revisions30d,
       recentUsers,
       sessionsLast14,
+      inactiveUsers,
     ] = await Promise.all([
       this.prisma.user.groupBy({ by: ['role'], _count: true }),
       this.prisma.user.groupBy({
@@ -78,6 +88,7 @@ export class AdminService {
         where: { date: { gte: new Date(now - 13 * DAY) } },
         select: { date: true },
       }),
+      this.prisma.user.count({ where: { active: false } }),
     ]);
 
     // Sesiones por día de las últimas dos semanas, incluidos los días sin actividad.
@@ -104,6 +115,7 @@ export class AdminService {
         clients: roleCount(Role.CLIENT),
         unassignedClients,
         new30d: newUsers30d,
+        inactive: inactiveUsers,
       },
       clientsByPlan: Object.fromEntries(
         byPlan.map((p) => [p.subscriptionPlan, p._count]),
@@ -117,12 +129,18 @@ export class AdminService {
     };
   }
 
-  findUsers(filters: { role?: Role; search?: string; trainerId?: string }) {
+  findUsers(filters: {
+    role?: Role;
+    search?: string;
+    trainerId?: string;
+    active?: boolean;
+  }) {
     const search = filters.search?.trim();
     return this.prisma.user.findMany({
       where: {
         role: filters.role,
         trainerId: filters.trainerId,
+        active: filters.active,
         ...(search && {
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
@@ -162,6 +180,7 @@ export class AdminService {
         role: dto.role,
         subscriptionPlan: dto.subscriptionPlan,
         trainerId: dto.trainerId,
+        mustChangePassword: dto.mustChangePassword ?? true,
       },
       select: userSelect,
     });
@@ -180,6 +199,9 @@ export class AdminService {
         'No puedes quitarte el rol de administrador a ti mismo',
       );
     }
+    if (id === currentAdminId && dto.active === false) {
+      throw new BadRequestException('No puedes desactivar tu propia cuenta');
+    }
     if (dto.email && dto.email.toLowerCase() !== user.email)
       await this.assertEmailFree(dto.email);
 
@@ -190,8 +212,13 @@ export class AdminService {
       role: dto.role,
       subscriptionPlan: dto.subscriptionPlan,
       revisionInterval: dto.revisionInterval,
+      active: dto.active,
+      mustChangePassword: dto.mustChangePassword,
     };
-    if (dto.password) data.password = await bcrypt.hash(dto.password, 10);
+    if (dto.password) {
+      data.password = await bcrypt.hash(dto.password, 10);
+      data.mustChangePassword = dto.mustChangePassword ?? true;
+    }
 
     if (dto.trainerId !== undefined) {
       if (dto.trainerId !== null) {
@@ -216,6 +243,76 @@ export class AdminService {
       }
       return tx.user.update({ where: { id }, data, select: userSelect });
     });
+  }
+
+  /**
+   * Elimina un usuario y todo lo que le pertenece. Se hace a mano y en orden porque varias
+   * relaciones del esquema no tienen borrado en cascada (sesiones, planes, revisiones, mensajes).
+   */
+  async deleteUser(id: string, currentAdminId: string) {
+    if (id === currentAdminId) {
+      throw new ForbiddenException('No puedes eliminar tu propia cuenta');
+    }
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: { bodyRevisions: true },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    const ownSessions: Prisma.WorkoutSessionWhereInput = {
+      OR: [{ userId: id }, { workout: { workoutPlan: { userId: id } } }],
+    };
+
+    await this.prisma.$transaction(async (tx) => {
+      // Sus clientes (si era entrenador) quedan sin asignar.
+      await tx.user.updateMany({
+        where: { trainerId: id },
+        data: { trainerId: null },
+      });
+
+      await tx.sessionSet.deleteMany({
+        where: { workoutSession: ownSessions },
+      });
+      await tx.workoutSession.deleteMany({ where: ownSessions });
+      await tx.workoutExercise.deleteMany({
+        where: { workout: { workoutPlan: { userId: id } } },
+      });
+      await tx.workout.deleteMany({ where: { workoutPlan: { userId: id } } });
+      await tx.workoutPlan.deleteMany({ where: { userId: id } });
+      await tx.bodyRevision.deleteMany({ where: { userId: id } });
+      await tx.message.deleteMany({
+        where: { OR: [{ senderId: id }, { receiverId: id }] },
+      });
+
+      // Sus alimentos personalizados pueden estar en menús de otros: pasan al admin que borra.
+      await tx.food.updateMany({
+        where: { createdById: id },
+        data: { createdById: currentAdminId },
+      });
+
+      // Perfil nutricional y menús propios caen en cascada; los asignados por él quedan sin autor.
+      await tx.user.delete({ where: { id } });
+    });
+
+    // Fotos en disco: si alguna falla, el usuario ya está borrado; solo se registra.
+    const files = [
+      user.profilePhoto,
+      ...user.bodyRevisions.flatMap((r) => [
+        r.photoFront,
+        r.photoBack,
+        r.photoSide,
+      ]),
+    ].filter((f): f is string => !!f);
+    for (const file of files) {
+      try {
+        const full = path.join(process.cwd(), 'public', file);
+        if (fs.existsSync(full)) fs.unlinkSync(full);
+      } catch (err) {
+        this.logger.warn(`No se pudo borrar ${file}: ${String(err)}`);
+      }
+    }
+
+    return { id, deleted: true };
   }
 
   private async assertEmailFree(email: string) {

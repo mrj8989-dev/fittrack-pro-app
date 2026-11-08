@@ -15,6 +15,17 @@ export class UsersService {
     });
   }
 
+  async touchLastLogin(id: string) {
+    return this.prisma.user.update({ where: { id }, data: { lastLoginAt: new Date() } });
+  }
+
+  async setPassword(id: string, hashedPassword: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword, mustChangePassword: false },
+    });
+  }
+
   async findById(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
@@ -62,7 +73,14 @@ export class UsersService {
         throw new NotFoundException('No existe ninguna cuenta con ese email. Indica nombre y contraseña para darla de alta.');
       }
       return this.prisma.user.create({
-        data: { email, name: dto.name.trim(), password: await bcrypt.hash(dto.password, 10), role: Role.CLIENT, trainerId },
+        data: {
+          email,
+          name: dto.name.trim(),
+          password: await bcrypt.hash(dto.password, 10),
+          role: Role.CLIENT,
+          trainerId,
+          mustChangePassword: true,
+        },
         select,
       });
     }

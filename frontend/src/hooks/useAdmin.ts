@@ -13,13 +13,16 @@ export interface AdminUser {
   revisionInterval: number
   profilePhoto: string | null
   createdAt: string
+  active: boolean
+  lastLoginAt: string | null
+  mustChangePassword: boolean
   trainerId: string | null
   trainer: { id: string; name: string } | null
   _count: { trainerClients: number; workoutSessions: number; bodyRevisions: number; mealPlans: number }
 }
 
 export interface AdminStats {
-  users: { total: number; admins: number; trainers: number; clients: number; unassignedClients: number; new30d: number }
+  users: { total: number; admins: number; trainers: number; clients: number; unassignedClients: number; new30d: number; inactive: number }
   clientsByPlan: Partial<Record<SubscriptionPlan, number>>
   sessions: { last7d: number; total: number }
   exercises: number
@@ -36,11 +39,13 @@ export interface AdminUserInput {
   role: Role
   subscriptionPlan?: SubscriptionPlan
   trainerId?: string
+  mustChangePassword?: boolean
 }
 
 export type AdminUserPatch = Partial<Omit<AdminUserInput, 'trainerId'>> & {
   trainerId?: string | null
   revisionInterval?: number
+  active?: boolean
 }
 
 export function useAdminStats() {
@@ -50,7 +55,7 @@ export function useAdminStats() {
   })
 }
 
-export function useAdminUsers(filters: { role?: Role; search?: string } = {}) {
+export function useAdminUsers(filters: { role?: Role; search?: string; active?: boolean } = {}) {
   return useQuery<AdminUser[]>({
     queryKey: ['admin', 'users', filters],
     queryFn: () => api.get('/admin/users', { params: filters }).then(r => r.data),
@@ -79,6 +84,14 @@ export function useUpdateUser() {
   return useMutation({
     mutationFn: ({ id, ...data }: AdminUserPatch & { id: string }) =>
       api.patch<AdminUser>(`/admin/users/${id}`, data).then(r => r.data),
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteUser() {
+  const invalidate = useInvalidateAdmin()
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/users/${id}`).then(r => r.data),
     onSuccess: invalidate,
   })
 }

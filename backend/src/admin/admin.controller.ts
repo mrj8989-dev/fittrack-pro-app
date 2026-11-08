@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -42,15 +43,18 @@ export class AdminController {
   @ApiQuery({ name: 'role', enum: Role, required: false })
   @ApiQuery({ name: 'search', required: false })
   @ApiQuery({ name: 'trainerId', required: false })
+  @ApiQuery({ name: 'active', required: false, enum: ['true', 'false'] })
   findUsers(
     @Query('role') role?: Role,
     @Query('search') search?: string,
     @Query('trainerId') trainerId?: string,
+    @Query('active') active?: string,
   ) {
     return this.adminService.findUsers({
       role: role && Object.values(Role).includes(role) ? role : undefined,
       search,
       trainerId,
+      active: active === 'true' ? true : active === 'false' ? false : undefined,
     });
   }
 
@@ -73,8 +77,16 @@ export class AdminController {
   updateUser(
     @Param('id') id: string,
     @Body() dto: AdminUpdateUserDto,
-    @CurrentUser() admin: any,
+    @CurrentUser() admin: { id: string },
   ) {
     return this.adminService.updateUser(id, dto, admin.id);
+  }
+
+  @Delete('users/:id')
+  @ApiOperation({
+    summary: 'Eliminar un usuario y todos sus datos (irreversible)',
+  })
+  deleteUser(@Param('id') id: string, @CurrentUser() admin: { id: string }) {
+    return this.adminService.deleteUser(id, admin.id);
   }
 }

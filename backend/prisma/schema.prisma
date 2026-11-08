@@ -28,6 +28,11 @@ model User {
   subscriptionPlan SubscriptionPlan @default(FREE)
   revisionInterval Int              @default(14)
   profilePhoto     String?
+  // Cuentas desactivadas por un admin: no pueden iniciar sesión, pero conservan su historial.
+  active           Boolean          @default(true)
+  lastLoginAt      DateTime?
+  // Contraseña puesta por un admin o entrenador: se pide cambiarla en el siguiente acceso.
+  mustChangePassword Boolean        @default(false)
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 

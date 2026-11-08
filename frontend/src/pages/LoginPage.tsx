@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from '../context/AuthContext'
+import { apiErrorMessage } from '../lib/apiError'
 
 const schema = z.object({
   email: z.string().email('Email no válido'),
@@ -28,8 +29,10 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password)
       navigate('/')
-    } catch {
-      setError('Email o contraseña incorrectos')
+    } catch (err) {
+      // 403 = cuenta desactivada: el backend explica el motivo.
+      const status = (err as { response?: { status?: number } })?.response?.status
+      setError(status === 403 ? apiErrorMessage(err) : 'Email o contraseña incorrectos')
     } finally {
       setLoading(false)
     }

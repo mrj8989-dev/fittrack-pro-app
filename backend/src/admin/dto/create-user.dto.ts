@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -39,4 +40,12 @@ export class AdminCreateUserDto {
   @IsOptional()
   @IsUUID()
   trainerId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Pedir que cambie la contraseña en el primer acceso (por defecto, sí)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  mustChangePassword?: boolean;
 }

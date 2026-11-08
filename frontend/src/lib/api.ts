@@ -15,8 +15,12 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    // Token caducado o cuenta desactivada: fuera. En el propio login, el 401 es "credenciales
+    // incorrectas" y lo muestra el formulario, así que no se recarga la página.
+    const isLogin = error.config?.url?.includes('/auth/login')
+    if (error.response?.status === 401 && !isLogin) {
       localStorage.removeItem('ft-token')
+      localStorage.removeItem('ft-user')
       window.location.href = '/login'
     }
     return Promise.reject(error)
