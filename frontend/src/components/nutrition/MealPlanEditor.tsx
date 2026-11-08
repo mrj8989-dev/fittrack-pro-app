@@ -9,6 +9,7 @@ import {
   iconButtonStyle, inputStyle, primaryButtonStyle, secondaryButtonStyle, unitsHint,
 } from './shared'
 import { MacroBar } from './MacroBar'
+import ShoppingList from './ShoppingList'
 
 // Lunes = 1 … Domingo = 7, igual que en el backend.
 function todayDayOfWeek(): number {
@@ -54,38 +55,38 @@ function InlineName({ value, onSave, style }: { value: string; onSave: (name: st
   )
 }
 
-function SwapPanel({ planId, item, onClose }: { planId: string; item: MealItem; onClose: () => void }) {
+/** Intercambio por un equivalente: un desplegable en la propia fila (ocupa una línea). */
+function SwapSelect({ planId, item, onClose }: { planId: string; item: MealItem; onClose: () => void }) {
   const { data: options = [], isLoading } = useSwapOptions(planId, item.id)
   const swap = useSwapMealItem()
+  const group = FOOD_GROUP_LABEL[item.food.group].toLowerCase()
 
   return (
-    <div style={{ background: 'var(--bg-primary)', borderRadius: '8px', padding: '10px', margin: '4px 0 8px' }}>
-      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-        Cambiar <strong>{item.food.name}</strong> ({item.grams} g) por otro alimento de {FOOD_GROUP_LABEL[item.food.group].toLowerCase()} que aporte lo mismo:
-      </div>
-      {isLoading ? (
-        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Calculando equivalencias...</div>
-      ) : options.length === 0 ? (
-        <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>No hay otros alimentos de este grupo.</div>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-          {options.map(o => (
-            <button
-              key={o.food.id}
-              disabled={swap.isPending}
-              onClick={() => swap.mutate({ planId, itemId: item.id, foodId: o.food.id }, { onSuccess: onClose })}
-              title={formatMacros(o.macros)}
-              style={{
-                ...secondaryButtonStyle, padding: '6px 10px', fontSize: '12px',
-                color: 'var(--text-primary)', background: 'var(--bg-secondary)',
-              }}
-            >
-              {o.food.name} · <strong>{o.grams} g</strong>
-            </button>
-          ))}
-        </div>
-      )}
-      <button onClick={onClose} style={{ ...iconButtonStyle, fontSize: '12px', marginTop: '8px' }}>Cerrar</button>
+    <div className="swap-select">
+      <i className="ti ti-arrows-exchange" style={{ color: 'var(--accent-primary)' }} aria-hidden="true" />
+      <select
+        autoFocus
+        value=""
+        disabled={isLoading || swap.isPending || options.length === 0}
+        onChange={e => e.target.value && swap.mutate({ planId, itemId: item.id, foodId: e.target.value }, { onSuccess: onClose })}
+        aria-label={`Cambiar ${item.food.name} por otro alimento equivalente`}
+        style={{ ...inputStyle, height: '32px', padding: '0 8px', fontSize: '12px', flex: 1, minWidth: 0 }}
+      >
+        <option value="">
+          {isLoading ? 'Calculando equivalencias…'
+            : options.length === 0 ? `No hay otros alimentos de ${group}`
+            : swap.isPending ? 'Cambiando…'
+            : `Cambiar por otro de ${group}…`}
+        </option>
+        {options.map(o => (
+          <option key={o.food.id} value={o.food.id} title={formatMacros(o.macros)}>
+            {o.food.name} · {o.grams} g
+          </option>
+        ))}
+      </select>
+      <button onClick={onClose} style={iconButtonStyle} title="Cancelar" aria-label="Cancelar">
+        <i className="ti ti-x" aria-hidden="true" />
+      </button>
     </div>
   )
 }
@@ -114,27 +115,17 @@ function ItemRow({ planId, item, mode }: { planId: string; item: MealItem; mode:
 
   const hint = unitsHint(item.grams, item.food.gramsPerUnit, item.food.unitName)
 
+  // Una sola línea: nombre y macros a la izquierda; gramos y acciones a la derecha.
   return (
-    <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 160px', minWidth: 0 }}>
-          <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{item.food.name}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
-            {formatMacros(item.macros)}{hint ? ` · ${hint}` : ''}
-          </div>
+    <div className="meal-item">
+      <div className="meal-item-row">
+        <div style={{ minWidth: 0 }}>
+          <div className="meal-item-name" title={item.food.name}>{item.food.name}</div>
+          <div className="meal-item-meta">{formatMacros(item.macros)}{hint ? ` · ${hint}` : ''}</div>
         </div>
-        {mode !== 'edit' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{item.grams} g</span>
-            {mode === 'swap' && (
-              <button onClick={() => setSwapping(s => !s)} style={iconButtonStyle} title="Cambiar por otro alimento equivalente">
-                <i className="ti ti-arrows-exchange" aria-hidden="true" />
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div className="meal-item-actions">
+          {mode === 'edit' ? (
+            <>
               <input
                 type="number"
                 min={1}
@@ -143,28 +134,38 @@ function ItemRow({ planId, item, mode }: { planId: string; item: MealItem; mode:
                 onBlur={commit}
                 onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
                 aria-label={`Gramos de ${item.food.name}`}
-                style={{ ...inputStyle, width: '76px', padding: '6px 8px', textAlign: 'right' }}
+                className="grams-input"
               />
-              <span style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>g</span>
-            </div>
-            <div style={{ display: 'flex' }}>
-              <button onClick={() => setSwapping(s => !s)} style={iconButtonStyle} title="Cambiar por otro alimento equivalente">
-                <i className="ti ti-arrows-exchange" aria-hidden="true" />
-              </button>
-              <button
-                onClick={() => remove.mutate({ planId, itemId: item.id })}
-                disabled={remove.isPending}
-                style={iconButtonStyle}
-                title="Quitar"
-              >
-                <i className="ti ti-trash" aria-hidden="true" />
-              </button>
-            </div>
-          </>
-        )}
+              <span className="grams-unit">g</span>
+            </>
+          ) : (
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{item.grams} g</span>
+          )}
+          {mode !== 'view' && (
+            <button
+              onClick={() => setSwapping(s => !s)}
+              style={{ ...iconButtonStyle, color: swapping ? 'var(--accent-primary)' : iconButtonStyle.color }}
+              title="Cambiar por otro alimento equivalente"
+              aria-label="Cambiar por otro alimento equivalente"
+            >
+              <i className="ti ti-arrows-exchange" aria-hidden="true" />
+            </button>
+          )}
+          {mode === 'edit' && (
+            <button
+              onClick={() => remove.mutate({ planId, itemId: item.id })}
+              disabled={remove.isPending}
+              style={iconButtonStyle}
+              title="Quitar"
+              aria-label={`Quitar ${item.food.name}`}
+            >
+              <i className="ti ti-trash" aria-hidden="true" />
+            </button>
+          )}
+        </div>
       </div>
-      {swapping && <SwapPanel planId={planId} item={item} onClose={() => setSwapping(false)} />}
-    </>
+      {swapping && <SwapSelect planId={planId} item={item} onClose={() => setSwapping(false)} />}
+    </div>
   )
 }
 
@@ -257,32 +258,24 @@ function MealCard({ planId, meal, mode }: { planId: string; meal: Meal; mode: Ed
   )
 }
 
-function AddMealRow({ planId, dayOfWeek }: { planId: string; dayOfWeek: number }) {
-  const [open, setOpen] = useState(false)
+/** Formulario de nueva comida; se abre desde el botón junto al nombre del día. */
+function AddMealForm({ planId, dayOfWeek, onClose }: { planId: string; dayOfWeek: number; onClose: () => void }) {
   const [name, setName] = useState('')
   const addMeal = useAddMeal()
-
-  if (!open) {
-    return (
-      <button onClick={() => setOpen(true)} style={{ ...secondaryButtonStyle, alignSelf: 'flex-start' }}>
-        <i className="ti ti-plus" style={{ marginRight: '6px' }} aria-hidden="true" />
-        Añadir comida al {DAY_LABEL[dayOfWeek - 1].toLowerCase()}
-      </button>
-    )
-  }
 
   return (
     <form
       onSubmit={e => {
         e.preventDefault()
-        addMeal.mutate({ planId, dayOfWeek, name: name.trim() }, { onSuccess: () => { setOpen(false); setName('') } })
+        addMeal.mutate({ planId, dayOfWeek, name: name.trim() }, { onSuccess: onClose })
       }}
-      style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}
+      style={{ ...cardStyle, padding: '0.75rem 1rem', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', gridColumn: '1 / -1' }}
     >
+      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>Nueva comida del {DAY_LABEL[dayOfWeek - 1].toLowerCase()}</span>
       <input autoFocus value={name} onChange={e => setName(e.target.value)} placeholder="Ej. Pre-entreno" required minLength={2}
-        aria-label="Nombre de la comida" style={{ ...inputStyle, flex: '1 1 180px' }} />
+        aria-label="Nombre de la comida" style={{ ...inputStyle, flex: '1 1 200px' }} />
       <button type="submit" disabled={addMeal.isPending} style={primaryButtonStyle}>Añadir</button>
-      <button type="button" onClick={() => setOpen(false)} style={secondaryButtonStyle}>Cancelar</button>
+      <button type="button" onClick={onClose} style={secondaryButtonStyle}>Cancelar</button>
     </form>
   )
 }
@@ -306,6 +299,8 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
   const rename = useRenameMealPlan()
   const duplicate = useCreateMealPlan()
   const deletePlan = useDeleteMealPlan()
+  const [showShopping, setShowShopping] = useState(false)
+  const [addingMeal, setAddingMeal] = useState(false)
 
   const current = plan.days.find(d => d.dayOfWeek === day) ?? plan.days[0]
   const titleStyle: React.CSSProperties = { fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }
@@ -330,7 +325,12 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
               {mode === 'view' && <Badge icon="ti-lock">Solo lectura: duplícala para modificarla</Badge>}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button onClick={() => setShowShopping(true)} style={secondaryButtonStyle} title="Lista de la compra de este menú">
+              <i className="ti ti-shopping-cart" style={{ marginRight: '6px' }} aria-hidden="true" />
+              Lista de la compra
+            </button>
             {onDuplicated && (
               <button
                 onClick={() => duplicate.mutate({ sourceId: plan.id }, { onSuccess: onDuplicated })}
@@ -343,37 +343,44 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
               </button>
             )}
             {!readOnly && onDeleted && (
+              // En un menú de cliente, borrarlo es quitárselo: deja de verlo (la plantilla original no se toca).
               <button
                 onClick={() => {
-                  if (confirm(`¿Eliminar "${plan.name}"?`)) deletePlan.mutate(plan.id, { onSuccess: onDeleted })
+                  const question = plan.isTemplate
+                    ? `¿Eliminar la plantilla "${plan.name}"?`
+                    : `¿Quitar "${plan.name}" a ${plan.owner?.name ?? 'este cliente'}? Dejará de verlo.`
+                  if (confirm(question)) deletePlan.mutate(plan.id, { onSuccess: onDeleted })
                 }}
-                style={secondaryButtonStyle}
-                title="Eliminar menú"
+                style={plan.isTemplate ? secondaryButtonStyle : { ...secondaryButtonStyle, color: 'var(--danger)' }}
+                title={plan.isTemplate ? 'Eliminar plantilla' : 'Quitar este menú al cliente'}
               >
-                <i className="ti ti-trash" aria-hidden="true" />
+                <i className="ti ti-trash" style={plan.isTemplate ? undefined : { marginRight: '6px' }} aria-hidden="true" />
+                {!plan.isTemplate && 'Quitar al cliente'}
               </button>
+            )}
+          </div>
+            {!readOnly && (
+              <form
+                onSubmit={e => { e.preventDefault(); scale.mutate({ planId: plan.id, targetKcal: Number(scaleKcal) }) }}
+                style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}
+              >
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }} title="Reescala las cantidades de todos los días (la verdura no se toca)">Ajustar todos los días a</span>
+                <input type="number" min={1000} max={6000} step={50} value={scaleKcal} onChange={e => setScaleKcal(e.target.value)}
+                  aria-label="Calorías objetivo" style={{ ...inputStyle, width: '96px', padding: '6px 8px' }} />
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>kcal</span>
+                <button type="submit" disabled={scale.isPending} style={{ ...primaryButtonStyle, padding: '6px 12px' }}>
+                  {scale.isPending ? 'Ajustando...' : 'Ajustar'}
+                </button>
+              </form>
             )}
           </div>
         </div>
 
-        {!readOnly && (
-          <form
-            onSubmit={e => { e.preventDefault(); scale.mutate({ planId: plan.id, targetKcal: Number(scaleKcal) }) }}
-            style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap' }}
-          >
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Ajustar todos los días a</span>
-            <input type="number" min={1000} max={6000} step={50} value={scaleKcal} onChange={e => setScaleKcal(e.target.value)}
-              aria-label="Calorías objetivo" style={{ ...inputStyle, width: '96px', padding: '6px 8px' }} />
-            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>kcal</span>
-            <button type="submit" disabled={scale.isPending} style={{ ...primaryButtonStyle, padding: '6px 12px' }}>
-              {scale.isPending ? 'Ajustando...' : 'Ajustar cantidades'}
-            </button>
-            <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>La verdura no se toca.</span>
-          </form>
-        )}
 
         {extra}
       </div>
+
+      {showShopping && <ShoppingList plan={plan} onClose={() => setShowShopping(false)} />}
 
       <div style={{ ...cardStyle, padding: '0.75rem 1rem' }} className="day-bar">
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }} role="tablist" aria-label="Día de la semana">
@@ -403,6 +410,11 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
           {DAY_LABEL[current.dayOfWeek - 1]}
           {targets && <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-tertiary)' }}>frente al objetivo</div>}
+          {!readOnly && (
+            <button onClick={() => setAddingMeal(true)} style={{ ...iconButtonStyle, fontSize: '12px', color: 'var(--accent-primary)', padding: '2px 0', display: 'block' }}>
+              <i className="ti ti-plus" aria-hidden="true" /> Comida
+            </button>
+          )}
         </div>
         {MACRO_META.map(m => (
           <MacroBar key={m.key} label={m.label} unit={m.unit} value={current.totals[m.key]} target={targets?.[m.key]} />
@@ -411,8 +423,15 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
       </div>
 
       <div className="meals-grid">
+        {addingMeal && !readOnly && (
+          <AddMealForm key={current.dayOfWeek} planId={plan.id} dayOfWeek={current.dayOfWeek} onClose={() => setAddingMeal(false)} />
+        )}
         {current.meals.map(meal => <MealCard key={meal.id} planId={plan.id} meal={meal} mode={mode} />)}
-        {!readOnly && <AddMealRow planId={plan.id} dayOfWeek={current.dayOfWeek} />}
+        {!readOnly && current.meals.length === 0 && !addingMeal && (
+          <button onClick={() => setAddingMeal(true)} style={{ ...secondaryButtonStyle, borderStyle: 'dashed', height: '52px' }}>
+            <i className="ti ti-plus" aria-hidden="true" /> Añadir la primera comida del {DAY_LABEL[current.dayOfWeek - 1].toLowerCase()}
+          </button>
+        )}
       </div>
     </div>
   )
