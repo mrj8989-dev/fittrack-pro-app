@@ -52,6 +52,8 @@ model User {
   mealPlans        MealPlan[]
   assignedMealPlans MealPlan[]      @relation("AssignedMealPlans")
   moduleOverrides  UserModuleOverride[]
+  aiMessages       AiMessage[]
+  aiSettings       AiSettings?
 }
 
 model Exercise {
@@ -276,4 +278,39 @@ model UserModuleOverride {
   enabled Boolean
 
   @@id([userId, module])
+}
+
+// Conversación con el asistente IA. Los mensajes del usuario del día cuentan para el límite diario.
+model AiMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String // "user" | "assistant"
+  content   String
+  // "Nueva conversación" archiva en vez de borrar: los mensajes siguen contando para el límite del día.
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// Configuración del asistente IA de cada usuario (la edita él en Ajustes o un admin).
+model AiSettings {
+  userId          String   @id
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tone            String   @default("friendly") // friendly | technical | motivational
+  detail          String   @default("brief") // brief | detailed
+  goal            String?
+  limitations     String?
+  // Qué datos del usuario puede usar la IA.
+  shareTraining   Boolean  @default(true)
+  shareSessions   Boolean  @default(true)
+  shareRevisions  Boolean  @default(true)
+  shareNutrition  Boolean  @default(true)
+  // Solo admin. null = lo que diga su plan (o sin límite si usa su propia clave).
+  dailyLimit      Int?
+  // Clave de API propia, cifrada (AES-256-GCM). Nunca se devuelve; solo los 4 últimos caracteres.
+  apiKeyEncrypted String?
+  apiKeyLast4     String?
+  updatedAt       DateTime @updatedAt
 }

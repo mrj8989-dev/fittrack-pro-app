@@ -13,6 +13,7 @@ import { chartTooltipStyle } from '../lib/chart'
 import { ROLE_LABEL } from '../lib/roleAccess'
 import { canHaveTrainer } from '../lib/planAccess'
 import { GlobalModulesModal, UserModulesSection } from '../components/admin/ModuleControls'
+import AiSettingsForm from '../components/AiSettingsForm'
 import type { Role } from '../lib/roleAccess'
 
 const ROLES: Role[] = ['CLIENT', 'TRAINER', 'ADMIN']
@@ -55,6 +56,7 @@ function UserFormModal({ user, trainers, onClose }: {
   const deleteUser = useDeleteUser()
   const mutation = isEdit ? updateUser : createUser
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [showAi, setShowAi] = useState(false)
 
   const [form, setForm] = useState({
     name: user?.name ?? '',
@@ -217,6 +219,26 @@ function UserFormModal({ user, trainers, onClose }: {
 
         {isEdit && user.role !== 'ADMIN' && (
           <UserModulesSection userId={user.id} isClient={user.role === 'CLIENT'} />
+        )}
+        {isEdit && user.role === 'CLIENT' && (
+          <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: '6px' }} onClick={() => setShowAi(true)}>
+            <i className="ti ti-sparkles" aria-hidden="true" /> Configurar su asistente IA
+          </button>
+        )}
+        {showAi && isEdit && (
+          <Modal onClose={() => setShowAi(false)}>
+            <div className="modal card" style={{ maxWidth: '620px' }} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Asistente IA">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
+                <span className="icon-tile lg"><i className="ti ti-sparkles" aria-hidden="true" /></span>
+                <div style={{ flex: 1 }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Asistente IA de {user.name}</h2>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Preferencias, datos que usa, límite diario y clave propia</p>
+                </div>
+                <button type="button" className="btn-icon" onClick={() => setShowAi(false)} aria-label="Cerrar"><i className="ti ti-x" style={{ fontSize: '18px' }} aria-hidden="true" /></button>
+              </div>
+              <AiSettingsForm userId={user.id} />
+            </div>
+          </Modal>
         )}
 
         {isEdit && !isSelf && (

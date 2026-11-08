@@ -31,7 +31,7 @@ export const MODULE_HINT: Record<ToggleableModule, string> = {
   revisions: 'Peso, medidas y fotos',
   trainer: 'Chat entre cliente y entrenador',
   nutrition: 'Objetivos, menús y alimentos',
-  ai: 'Asistente de entrenamiento (próximamente)',
+  ai: 'Asistente de entrenamiento con IA',
 }
 
 export function useMyAccess() {

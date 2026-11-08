@@ -14,6 +14,7 @@ import { MessagesModule } from './messages/messages.module';
 import { NutritionModule } from './nutrition/nutrition.module';
 import { AdminModule } from './admin/admin.module';
 import { AccessModule } from './access/access.module';
+import { AiModule } from './ai/ai.module';
 
 
 @Module({
@@ -35,6 +36,7 @@ import { AccessModule } from './access/access.module';
     NutritionModule,
     AdminModule,
     AccessModule,
+    AiModule,
   ],
 })
 export class AppModule {}
