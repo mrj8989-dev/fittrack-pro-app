@@ -72,6 +72,8 @@ model WorkoutPlan {
   id          String   @id @default(uuid())
   name        String
   description String?
+  // Plantilla reutilizable del entrenador (o global si es del admin); no se entrena directamente.
+  isTemplate  Boolean  @default(false)
   userId      String
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
@@ -85,7 +87,7 @@ model Workout {
   name          String
   dayOfWeek     Int?
   workoutPlanId String
-  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id])
+  workoutPlan   WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
   createdAt     DateTime    @default(now())
 
   exercises     WorkoutExercise[]
@@ -95,7 +97,7 @@ model Workout {
 model WorkoutExercise {
   id         String   @id @default(uuid())
   workoutId  String
-  workout    Workout  @relation(fields: [workoutId], references: [id])
+  workout    Workout  @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exerciseId String
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
   sets       Int
@@ -109,8 +111,10 @@ model WorkoutSession {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  workoutId String
-  workout   Workout  @relation(fields: [workoutId], references: [id])
+  // Si se borra el día del plan, la sesión se conserva en el historial con su nombre.
+  workoutId   String?
+  workout     Workout? @relation(fields: [workoutId], references: [id], onDelete: SetNull)
+  workoutName String?
   date      DateTime @default(now())
   duration  Int?
   notes     String?
@@ -122,7 +126,7 @@ model WorkoutSession {
 model SessionSet {
   id               String         @id @default(uuid())
   workoutSessionId String
-  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id])
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
   exerciseId       String
   setNumber        Int
   reps             Int?

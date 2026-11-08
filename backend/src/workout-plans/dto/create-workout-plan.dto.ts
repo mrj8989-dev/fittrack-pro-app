@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsUUID, MinLength } from 'class-validator';
+import { IsString, IsOptional, IsUUID, IsBoolean, MinLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateWorkoutPlanDto {
@@ -16,4 +16,9 @@ export class CreateWorkoutPlanDto {
   @IsOptional()
   @IsUUID()
   targetUserId?: string;
+
+  @ApiPropertyOptional({ description: 'Solo entrenador/admin: crear como plantilla reutilizable (se ignora targetUserId)' })
+  @IsOptional()
+  @IsBoolean()
+  asTemplate?: boolean;
 }

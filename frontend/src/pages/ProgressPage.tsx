@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useExerciseProgress } from '../hooks/useWorkoutSessions'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useExerciseProgress, useWorkoutSessions } from '../hooks/useWorkoutSessions'
+import SessionHistory from '../components/SessionHistory'
 import { usePersonalRecords } from '../hooks/useWorkoutSessions'
 import api from '../lib/api'
 import {
@@ -11,7 +12,16 @@ import { EmptyState, Loader, PageHeader, StatCard } from '../components/ui'
 import { chartTooltipStyle } from '../lib/chart'
 
 export default function ProgressPage() {
+  const [view, setView] = useState<'evolucion' | 'historial'>('evolucion')
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('')
+  const qc = useQueryClient()
+  const { data: sessions = [], isLoading: loadingSessions } = useWorkoutSessions()
+  const deleteSession = useMutation({
+    mutationFn: (id: string) => api.delete(`/workout-sessions/${id}`),
+    onSuccess: () => {
+      for (const key of ['workout-sessions', 'personal-records', 'progress']) qc.invalidateQueries({ queryKey: [key] })
+    },
+  })
   const { data: records = [], isLoading: loadingRecords } = usePersonalRecords()
   const { data: exercises = [] } = useQuery({
     queryKey: ['exercises'],
@@ -53,8 +63,8 @@ export default function ProgressPage() {
       <PageHeader
         eyebrow={<><i className="ti ti-chart-line" aria-hidden="true" /> Progreso</>}
         title="Tu evolución"
-        subtitle="Fuerza y volumen por ejercicio, y tus récords agrupados por grupo muscular"
-        actions={
+        subtitle="Fuerza y volumen por ejercicio, tus récords y el historial de todas tus sesiones"
+        actions={view === 'evolucion' && (
           <select
             value={selectedExerciseId}
             onChange={e => setSelectedExerciseId(e.target.value)}
@@ -77,9 +87,24 @@ export default function ProgressPage() {
               </optgroup>
             ))}
           </select>
-        }
+        )}
       />
 
+      <div className="tabs" role="tablist" style={{ marginBottom: '1rem', width: 'fit-content' }}>
+        {([['evolucion', 'ti-chart-line', 'Evolución y récords'], ['historial', 'ti-history', `Historial (${sessions.length})`]] as const).map(([key, icon, label]) => (
+          <button key={key} type="button" role="tab" aria-selected={view === key} className={`tab${view === key ? ' active' : ''}`} onClick={() => setView(key)}>
+            <i className={`ti ${icon}`} aria-hidden="true" /> {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'historial' ? (
+        loadingSessions ? <Loader inline label="Cargando sesiones..." /> : (
+          <div className="card">
+            <SessionHistory sessions={sessions} emptyText="Cuando entrenes, aquí verás cada sesión con sus series y pesos." onDelete={id => deleteSession.mutate(id)} />
+          </div>
+        )
+      ) : (<>
       {/* GRÁFICAS DEL EJERCICIO SELECCIONADO */}
       {selectedExerciseId && (
         <>
@@ -217,6 +242,7 @@ export default function ProgressPage() {
           </div>
         )}
       </div>
+      </>)}
     </div>
   )
 }

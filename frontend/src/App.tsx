@@ -15,7 +15,9 @@ import NutritionPage from './pages/NutritionPage'
 import AdminPage from './pages/AdminPage'
 import ForcePasswordChangePage from './pages/ForcePasswordChangePage'
 import PlansPage from './pages/PlansPage'
+import RoutinesPage from './pages/RoutinesPage'
 import AssistantPage from './pages/AssistantPage'
+import TrainerHomePage from './pages/TrainerHomePage'
 import { canAccess, featureForPath, homePathFor } from './lib/roleAccess'
 import { useFeatureState } from './hooks/useAccess'
 import { EmptyState } from './components/ui'
@@ -56,6 +58,12 @@ function RoleRoute({ path, children }: { path: string; children: React.ReactNode
   return <>{children}</>
 }
 
+// Misma ruta de inicio, distinta página según el rol.
+function HomePage() {
+  const { user } = useAuth()
+  return user?.role === 'TRAINER' ? <TrainerHomePage /> : <DashboardPage />
+}
+
 export default function App() {
   return (
     <Routes>
@@ -67,13 +75,14 @@ export default function App() {
           <Layout />
         </PrivateRoute>
       }>
-        <Route index element={<RoleRoute path="/"><DashboardPage /></RoleRoute>} />
+        <Route index element={<RoleRoute path="/"><HomePage /></RoleRoute>} />
         <Route path="workout" element={<RoleRoute path="/workout"><WorkoutPage /></RoleRoute>} />
         <Route path="progreso" element={<RoleRoute path="/progreso"><ProgressPage /></RoleRoute>} />
         <Route path="ajustes" element={<RoleRoute path="/ajustes"><SettingsPage /></RoleRoute>} />
         <Route path="revisiones" element={<RoleRoute path="/revisiones"><RevisionsPage /></RoleRoute>} />
         <Route path="nutricion" element={<RoleRoute path="/nutricion"><NutritionPage /></RoleRoute>} />
         <Route path="entrenador" element={<RoleRoute path="/entrenador"><TrainerPage /></RoleRoute>} />
+        <Route path="rutinas" element={<RoleRoute path="/rutinas"><RoutinesPage /></RoleRoute>} />
         <Route path="ejercicios" element={<RoleRoute path="/ejercicios"><ExercisesPage /></RoleRoute>} />
         <Route path="chat" element={<RoleRoute path="/chat"><ChatPage /></RoleRoute>} />
         <Route path="admin" element={<RoleRoute path="/admin"><AdminPage /></RoleRoute>} />

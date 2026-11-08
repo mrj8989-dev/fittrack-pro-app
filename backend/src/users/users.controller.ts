@@ -13,6 +13,7 @@ import { Role } from '@prisma/client';
 import { FeatureGuard } from '../access/feature.guard';
 import { RequiresFeature } from '../access/requires-feature.decorator';
 import { AccessService } from '../access/access.service';
+import { TrainerDashboardService } from './trainer-dashboard.service';
 
 const photoStorage = diskStorage({
   destination: './public/uploads',
@@ -31,7 +32,14 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private access: AccessService,
+    private dashboard: TrainerDashboardService,
   ) {}
+
+  @Get('trainer-dashboard')
+  @ApiOperation({ summary: 'Resumen de la cartera del entrenador: actividad, revisiones pendientes, mensajes y avisos' })
+  getTrainerDashboard(@CurrentUser() user: any) {
+    return this.dashboard.get(user.id);
+  }
 
   @Get('clients')
   @Roles(Role.TRAINER, Role.ADMIN)
@@ -40,9 +48,10 @@ export class UsersController {
     const clients = user.role === Role.ADMIN
       ? await this.usersService.findAllClients()
       : await this.usersService.findClientsByTrainer(user.id);
-    // Si se le pueden asignar menús (plan PREMIUM o excepción del admin).
+    // Qué se le puede asignar: rutinas (PRO o más) y menús (PREMIUM), salvo excepciones del admin.
     return Promise.all(clients.map(async c => ({
       ...c,
+      trainingEnabled: await this.access.entitled({ ...c, role: Role.CLIENT }, 'training'),
       nutritionEnabled: await this.access.entitled({ ...c, role: Role.CLIENT }, 'nutrition'),
     })));
   }

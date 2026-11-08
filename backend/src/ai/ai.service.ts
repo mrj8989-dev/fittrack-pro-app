@@ -320,7 +320,7 @@ export class AiService {
         }),
         s.shareTraining
           ? this.prisma.workoutPlan.findMany({
-              where: { userId: user.id },
+              where: { userId: user.id, isTemplate: false },
               orderBy: { createdAt: 'desc' },
               take: 1,
               include: {
@@ -400,7 +400,7 @@ export class AiService {
     } else {
       lines.push(
         sessions.length
-          ? `- Últimas sesiones: ${sessions.map((x) => `${fmt(x.date)} ${x.workout?.name ?? ''}${x.completed ? '' : ' (sin terminar)'}`).join('; ')}`
+          ? `- Últimas sesiones: ${sessions.map((x) => `${fmt(x.date)} ${x.workout?.name ?? x.workoutName ?? ''}${x.completed ? '' : ' (sin terminar)'}`).join('; ')}`
           : '- No ha registrado sesiones todavía.',
       );
     }
