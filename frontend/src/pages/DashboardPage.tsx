@@ -80,7 +80,7 @@ export default function DashboardPage() {
           <p className="hero-subtitle">
             {plans.length > 0 ? <>Plan activo: <strong style={{ color: '#fff' }}>{plans[0].name}</strong></> : 'Sin plan activo todavía'}
           </p>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '1.25rem', alignItems: 'center' }}>
+          <div className="hero-actions">
             <Link to="/workout" className="btn btn-primary"><i className="ti ti-player-play-filled" aria-hidden="true" /> Empezar a entrenar</Link>
             {sessions.length > 0 && (
               <span className="badge" style={{ height: '38px', padding: '0 14px', fontSize: '12px' }}>
@@ -92,7 +92,7 @@ export default function DashboardPage() {
       </section>
 
       {/* MÉTRICAS */}
-      <div className="grid-auto" style={{ '--min': '190px', marginBottom: '14px' } as React.CSSProperties}>
+      <div className="grid-auto stats-grid" style={{ '--min': '190px', marginBottom: '14px' } as React.CSSProperties}>
         <StatCard
           icon="ti-scale"
           label="Peso actual"
@@ -109,18 +109,18 @@ export default function DashboardPage() {
         <StatCard
           icon="ti-camera"
           label="Próx. revisión"
-          value={nextRevision ? `${nextRevision.daysUntilRevision} días` : '—'}
+          value={!nextRevision ? '—' : nextRevision.daysUntilRevision <= 0 ? 'Hoy' : `${nextRevision.daysUntilRevision} días`}
           sub={nextRevision ? new Date(nextRevision.nextRevisionDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : ''}
           tone={nextRevision && nextRevision.daysUntilRevision <= 0 ? 'negative' : undefined}
         />
       </div>
 
       {/* GRÁFICAS */}
-      <div className="grid-auto" style={{ '--min': '320px', marginBottom: '14px' } as React.CSSProperties}>
+      <div className="grid-auto" style={{ '--min': '270px' } as React.CSSProperties}>
         <div className="card">
           <h2 className="section-title"><i className="ti ti-chart-bar" aria-hidden="true" /> Volumen semanal</h2>
           {volumeData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={170}>
               <BarChart data={volumeData} barSize={22}>
                 <defs>
                   <linearGradient id="volGrad" x1="0" y1="0" x2="0" y2="1">
@@ -142,7 +142,7 @@ export default function DashboardPage() {
         <div className="card">
           <h2 className="section-title"><i className="ti ti-trending-down" aria-hidden="true" /> Evolución del peso</h2>
           {weightProgress.length > 1 ? (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={170}>
               <AreaChart data={weightProgress.map((r: any) => ({
                 fecha: new Date(r.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
                 peso: r.weight,
@@ -163,10 +163,7 @@ export default function DashboardPage() {
             <EmptyState icon="ti-scale" title="Sin evolución todavía">Añade revisiones para ver tu progreso de peso</EmptyState>
           )}
         </div>
-      </div>
 
-      {/* RÉCORDS + PLAN */}
-      <div className="grid-auto" style={{ '--min': '320px' } as React.CSSProperties}>
         <div className="card">
           <h2 className="section-title"><i className="ti ti-trophy" aria-hidden="true" /> Récords personales</h2>
           {records.length > 0 ? (

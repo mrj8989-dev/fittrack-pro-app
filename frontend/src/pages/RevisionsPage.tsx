@@ -7,7 +7,7 @@ import { useBodyRevisions, useNextRevision, useWeightProgress } from '../hooks/u
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import api, { API_BASE_URL } from '../lib/api'
 import { chartTooltipStyle } from '../lib/chart'
-import { EmptyState, Loader, PageHeader } from '../components/ui'
+import { EmptyState, Loader, Modal, PageHeader } from '../components/ui'
 
 const schema = z.object({
   weight: z.coerce.number().min(30).max(300),
@@ -112,6 +112,8 @@ export default function RevisionsPage() {
     ? (lastRevision.weight - firstRevision.weight).toFixed(1)
     : null
 
+  const closeForm = () => { setShowForm(false); reset(); setPhotos({}) }
+
   return (
     <div className="page" style={{ maxWidth: '1200px' }}>
       <PageHeader
@@ -119,9 +121,9 @@ export default function RevisionsPage() {
         title="Revisiones corporales"
         subtitle="Seguimiento de peso, medidas y progreso físico"
         actions={
-          <button onClick={() => setShowForm(!showForm)} className={`btn ${showForm ? 'btn-secondary' : 'btn-primary'}`}>
-            <i className={`ti ${showForm ? 'ti-x' : 'ti-plus'}`} aria-hidden="true" />
-            {showForm ? 'Cerrar' : 'Nueva revisión'}
+          <button onClick={() => setShowForm(true)} className="btn btn-primary">
+            <i className="ti ti-plus" aria-hidden="true" />
+            Nueva revisión
           </button>
         }
       />
@@ -152,18 +154,32 @@ export default function RevisionsPage() {
             <span className="badge" style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', borderColor: 'transparent', height: '28px', padding: '0 12px' }}>
               {nextRevision.daysUntilRevision <= 0 ? '¡Hoy toca revisión!' : `en ${nextRevision.daysUntilRevision} días`}
             </span>
-            <span className="badge" style={{ background: 'rgba(0,0,0,0.15)', color: '#fff', borderColor: 'transparent', height: '28px', padding: '0 12px' }}>
+            {nextRevision.revisionInterval && (
+              <span className="badge" style={{ background: 'rgba(0,0,0,0.15)', color: '#fff', borderColor: 'transparent', height: '28px', padding: '0 12px' }}>
               cada {nextRevision.revisionInterval} días
             </span>
+            )}
           </div>
         </div>
       )}
 
       {/* FORMULARIO */}
       {showForm && (
-        <div className="card card-accent" style={{ marginBottom: '14px', padding: '1.5rem' }}>
-          <h2 className="section-title"><i className="ti ti-clipboard-plus" aria-hidden="true" /> Nueva revisión</h2>
-          <form onSubmit={handleSubmit(d => createRevision.mutate(d))}>
+        <Modal onClose={closeForm}>
+          <form
+            className="modal card"
+            style={{ maxWidth: '760px' }}
+            onClick={e => e.stopPropagation()}
+            onSubmit={handleSubmit(d => createRevision.mutate(d))}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Nueva revisión"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.25rem' }}>
+              <span className="icon-tile lg"><i className="ti ti-clipboard-plus" aria-hidden="true" /></span>
+              <h2 style={{ flex: 1, fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Nueva revisión</h2>
+              <button type="button" className="btn-icon" onClick={closeForm} aria-label="Cerrar"><i className="ti ti-x" style={{ fontSize: '18px' }} aria-hidden="true" /></button>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '14px' }}>
               <InputField label="Peso (kg) *" name="weight" register={register} placeholder="70.5" error={errors.weight} />
               <InputField label="% Grasa corporal" name="bodyFat" register={register} placeholder="15.0" error={errors.bodyFat} />
@@ -194,7 +210,7 @@ export default function RevisionsPage() {
                         style={{
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                           gap: '6px',
-                          height: '120px',
+                          height: '96px',
                           background: 'var(--bg-primary)',
                           border: `1.5px dashed ${file ? 'var(--accent-primary)' : 'var(--border-strong)'}`,
                           borderRadius: '12px',
@@ -238,17 +254,17 @@ export default function RevisionsPage() {
                 })}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={closeForm} className="btn btn-secondary">
+                Cancelar
+              </button>
               <button type="submit" disabled={createRevision.isPending} className="btn btn-primary">
                 <i className="ti ti-device-floppy" aria-hidden="true" />
                 {createRevision.isPending ? 'Guardando...' : 'Guardar revisión'}
               </button>
-              <button type="button" onClick={() => { setShowForm(false); reset(); setPhotos({}) }} className="btn btn-secondary">
-                Cancelar
-              </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {/* STATS RÁPIDAS */}
@@ -309,7 +325,7 @@ export default function RevisionsPage() {
             </EmptyState>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="grid-auto" style={{ '--min': '420px', alignItems: 'start' } as React.CSSProperties}>
             {revisions.map((revision: any, index: number) => {
               const prev = revisions[index + 1]
               const weightDiff = prev ? (revision.weight - prev.weight).toFixed(1) : null
