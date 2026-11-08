@@ -3,8 +3,7 @@ import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBodyRevisionDto } from './dto/create-body-revision.dto';
 import { UpdateRevisionIntervalDto } from './dto/update-revision-interval.dto';
-import * as fs from 'fs';
-import * as path from 'path';
+import { deleteUpload, withSignedPhotos } from '../common/uploads';
 
 @Injectable()
 export class BodyRevisionsService {
@@ -29,7 +28,7 @@ export class BodyRevisionsService {
       ? `/uploads/${files.photoSide[0].filename}`
       : null;
 
-    return this.prisma.bodyRevision.create({
+    const revision = await this.prisma.bodyRevision.create({
       data: {
         ...dto,
         userId,
@@ -38,6 +37,7 @@ export class BodyRevisionsService {
         photoSide,
       },
     });
+    return withSignedPhotos(revision);
   }
 
   /**
@@ -57,14 +57,20 @@ export class BodyRevisionsService {
     return clientId;
   }
 
+  // Las fotos salen siempre con enlace firmado: sin él, /uploads no las entrega.
   async findAll(userId: string) {
-    return this.prisma.bodyRevision.findMany({
+    const revisions = await this.prisma.bodyRevision.findMany({
       where: { userId },
       orderBy: { date: 'desc' },
     });
+    return revisions.map(withSignedPhotos);
   }
 
   async findOne(id: string, userId: string) {
+    return withSignedPhotos(await this.load(id, userId));
+  }
+
+  private async load(id: string, userId: string) {
     const revision = await this.prisma.bodyRevision.findUnique({
       where: { id },
     });
@@ -74,16 +80,11 @@ export class BodyRevisionsService {
   }
 
   async remove(id: string, userId: string) {
-    const revision = await this.findOne(id, userId);
+    const revision = await this.load(id, userId);
 
     // Eliminar fotos del servidor si existen
     const photos = [revision.photoFront, revision.photoBack, revision.photoSide];
-    for (const photo of photos) {
-      if (photo) {
-        const filePath = path.join(process.cwd(), 'public', photo);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      }
-    }
+    for (const photo of photos) deleteUpload(photo);
 
     return this.prisma.bodyRevision.delete({ where: { id } });
   }

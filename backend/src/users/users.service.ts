@@ -2,9 +2,8 @@ import { Injectable, NotFoundException, ConflictException, BadRequestException, 
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, SubscriptionPlan } from '@prisma/client';
 import { AccessService } from '../access/access.service';
-import * as fs from 'fs';
+import { deleteUpload } from '../common/uploads';
 import * as bcrypt from 'bcryptjs';
-import * as path from 'path';
 
 @Injectable()
 export class UsersService {
@@ -122,10 +121,7 @@ export class UsersService {
     if (!filename) throw new BadRequestException('No se ha recibido ningún archivo');
 
     const current = await this.prisma.user.findUnique({ where: { id: userId }, select: { profilePhoto: true } });
-    if (current?.profilePhoto) {
-      const oldPath = path.join(process.cwd(), 'public', current.profilePhoto);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
-    }
+    deleteUpload(current?.profilePhoto);
 
     return this.prisma.user.update({
       where: { id: userId },

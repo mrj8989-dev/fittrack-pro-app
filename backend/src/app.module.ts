@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -15,15 +15,28 @@ import { NutritionModule } from './nutrition/nutrition.module';
 import { AdminModule } from './admin/admin.module';
 import { AccessModule } from './access/access.module';
 import { AiModule } from './ai/ai.module';
+import { UploadsModule } from './uploads/uploads.module';
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'public'),
-      serveRoot: '/',
+    // Límite de peticiones por IP (las de login y registro, mucho más estrictas: ver AuthController).
+    ThrottlerModule.forRootAsync({
+      useFactory: () => ({
+        errorMessage: 'Demasiadas peticiones seguidas. Espera un minuto y vuelve a intentarlo.',
+        throttlers: [
+          {
+            ttl: 60_000,
+            limit:
+              Number(process.env.THROTTLE_LIMIT) ||
+              (process.env.NODE_ENV === 'production' ? 300 : 3000),
+          },
+        ],
+      }),
     }),
+    // Fotos subidas: las sirve UploadsController (las de revisiones, solo con enlace firmado).
+    UploadsModule,
     PrismaModule,
     UsersModule,
     AuthModule,
@@ -38,5 +51,6 @@ import { AiModule } from './ai/ai.module';
     AccessModule,
     AiModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

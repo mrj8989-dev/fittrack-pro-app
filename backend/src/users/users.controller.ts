@@ -1,8 +1,7 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { imageUpload } from '../common/uploads';
 import { UsersService } from './users.service';
 import { AssignClientDto } from './dto/assign-client.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,13 +14,6 @@ import { RequiresFeature } from '../access/requires-feature.decorator';
 import { AccessService } from '../access/access.service';
 import { TrainerDashboardService } from './trainer-dashboard.service';
 
-const photoStorage = diskStorage({
-  destination: './public/uploads',
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `avatar-${uniqueSuffix}${extname(file.originalname)}`);
-  },
-});
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -85,7 +77,7 @@ export class UsersController {
   @Post('me/photo')
   @Roles()
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('photo', { storage: photoStorage }))
+  @UseInterceptors(FileInterceptor('photo', imageUpload('avatar')))
   @ApiOperation({ summary: 'Subir o actualizar tu propia foto de perfil (cualquier rol)' })
   uploadMyPhoto(
     @UploadedFile() file: Express.Multer.File,

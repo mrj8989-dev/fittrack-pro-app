@@ -19,6 +19,14 @@ import {
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { Throttle } from '@nestjs/throttler';
+
+// Intentos por minuto y por IP en login, registro y cambio de contraseña (frena el ataque por fuerza bruta).
+// En desarrollo, generoso para no estorbar a las pruebas.
+const AUTH_LIMIT =
+  Number(process.env.AUTH_THROTTLE_LIMIT) ||
+  (process.env.NODE_ENV === 'production' ? 10 : 200);
+const authThrottle = { default: { limit: AUTH_LIMIT, ttl: 60_000 } };
 
 @ApiTags('auth')
 @Controller('auth')
@@ -26,6 +34,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
+  @Throttle(authThrottle)
   @ApiOperation({ summary: 'Registrar nuevo usuario' })
   @ApiResponse({ status: 201, description: 'Usuario creado correctamente' })
   @ApiResponse({ status: 409, description: 'El email ya está registrado' })
@@ -34,6 +43,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle(authThrottle)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Iniciar sesión' })
   @ApiResponse({ status: 200, description: 'Login correcto' })
@@ -51,6 +61,7 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @Throttle(authThrottle)
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)

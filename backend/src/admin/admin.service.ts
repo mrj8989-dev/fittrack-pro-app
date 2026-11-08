@@ -8,8 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import * as fs from 'fs';
-import * as path from 'path';
+import { deleteUpload } from '../common/uploads';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AccessService,
@@ -369,8 +368,7 @@ export class AdminService {
     ].filter((f): f is string => !!f);
     for (const file of files) {
       try {
-        const full = path.join(process.cwd(), 'public', file);
-        if (fs.existsSync(full)) fs.unlinkSync(full);
+        deleteUpload(file);
       } catch (err) {
         this.logger.warn(`No se pudo borrar ${file}: ${String(err)}`);
       }

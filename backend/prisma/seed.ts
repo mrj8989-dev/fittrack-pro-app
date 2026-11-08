@@ -5,53 +5,31 @@ import { EXERCISE_CATALOG } from './exercise-catalog';
 
 const prisma = new PrismaClient();
 
+/**
+ * Seeder en tres partes:
+ * - Catálogo (ejercicios, alimentos, plantillas de menú): siempre.
+ * - Admin: solo si se definen ADMIN_EMAIL y ADMIN_PASSWORD (así producción no tiene un admin con contraseña conocida).
+ * - Demo (cliente y entrenador con contraseña pública, plan y menú): en desarrollo por defecto;
+ *   en producción solo con SEED_DEMO=true, y nunca con un admin de demo.
+ */
+const isProduction = process.env.NODE_ENV === 'production';
+const withDemo = process.env.SEED_DEMO
+  ? process.env.SEED_DEMO === 'true'
+  : !isProduction;
+const DEMO_PASSWORD = 'demo1234';
+
 async function main() {
-  console.log('🌱 Iniciando seeder...');
+  console.log(`🌱 Iniciando seeder (${isProduction ? 'producción' : 'desarrollo'}${withDemo ? ', con datos demo' : ''})...`);
 
-  // ── USUARIOS (uno por rol, misma contraseña) ─────────────────────
-  const hashedPassword = await bcrypt.hash('demo1234', 10);
+  await seedExercises();
+  await seedNutrition(prisma);
+  await seedAdmin();
+  if (withDemo) await seedDemo();
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@fittrack.com' },
-    update: {},
-    create: {
-      email: 'admin@fittrack.com',
-      password: hashedPassword,
-      name: 'Demo Admin',
-      role: 'ADMIN',
-      subscriptionPlan: 'PREMIUM',
-    },
-  });
+  console.log('🎉 Seeder completado correctamente');
+}
 
-  const trainer = await prisma.user.upsert({
-    where: { email: 'trainer@fittrack.com' },
-    update: {},
-    create: {
-      email: 'trainer@fittrack.com',
-      password: hashedPassword,
-      name: 'Demo Entrenador',
-      role: 'TRAINER',
-      subscriptionPlan: 'PRO',
-    },
-  });
-
-  // El usuario demo es un CLIENT PREMIUM (entrenador + nutrición) para enseñar toda la app.
-  // El `update` migra bases de datos antiguas donde demo@ se creó como ADMIN o PRO.
-  const user = await prisma.user.upsert({
-    where: { email: 'demo@fittrack.com' },
-    update: { role: 'CLIENT', name: 'Demo Cliente', trainerId: trainer.id, subscriptionPlan: 'PREMIUM' },
-    create: {
-      email: 'demo@fittrack.com',
-      password: hashedPassword,
-      name: 'Demo Cliente',
-      role: 'CLIENT',
-      subscriptionPlan: 'PREMIUM',
-      revisionInterval: 14,
-      trainerId: trainer.id,
-    },
-  });
-  console.log('✅ Usuarios creados:', [admin, trainer, user].map(u => u.email).join(', '));
-
+async function seedExercises() {
   // ── EJERCICIOS ───────────────────────────────────────────────────
   const exercises = await Promise.all([
     prisma.exercise.upsert({ where: { id: 'ex-press-banca' }, update: {}, create: { id: 'ex-press-banca', name: 'Press de banca con barra', muscleGroup: 'Pecho', equipment: 'Barra y banco', description: 'Ejercicio rey para ganar masa en pecho. Agarre ligeramente más ancho que los hombros.', videoUrl: 'https://www.youtube.com/watch?v=UU0a7dbs4NI' } }),
@@ -84,6 +62,82 @@ async function main() {
     await prisma.exercise.upsert({ where: { id }, update: data, create: { id, ...data } });
   }
   console.log(`✅ ${exercises.length + EXERCISE_CATALOG.length} ejercicios en el catálogo`);
+}
+
+/** Admin real: credenciales por variables de entorno, nunca en el código. Solo se crea si no existe. */
+async function seedAdmin() {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    if (!withDemo || isProduction)
+      console.log('ℹ️  Sin ADMIN_EMAIL/ADMIN_PASSWORD: no se crea ningún admin');
+    return;
+  }
+  if (password.length < 12) throw new Error('ADMIN_PASSWORD debe tener al menos 12 caracteres');
+  const exists = await prisma.user.findUnique({ where: { email } });
+  if (exists) {
+    console.log(`⏭️  El admin ${email} ya existe: no se modifica`);
+    return;
+  }
+  await prisma.user.create({
+    data: {
+      email,
+      password: await bcrypt.hash(password, 10),
+      name: process.env.ADMIN_NAME || 'Administrador',
+      role: 'ADMIN',
+      subscriptionPlan: 'PREMIUM',
+    },
+  });
+  console.log(`✅ Admin creado: ${email}`);
+}
+
+/** Usuarios de demo (contraseña pública "${DEMO_PASSWORD}") con un plan y un menú asignados. */
+async function seedDemo() {
+  const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10);
+
+  // Admin de demo solo en desarrollo: en producción tendría acceso total con una contraseña pública.
+  if (!isProduction) {
+    await prisma.user.upsert({
+      where: { email: 'admin@fittrack.com' },
+      update: {},
+      create: {
+        email: 'admin@fittrack.com',
+        password: hashedPassword,
+        name: 'Demo Admin',
+        role: 'ADMIN',
+        subscriptionPlan: 'PREMIUM',
+      },
+    });
+  }
+
+  const trainer = await prisma.user.upsert({
+    where: { email: 'trainer@fittrack.com' },
+    update: {},
+    create: {
+      email: 'trainer@fittrack.com',
+      password: hashedPassword,
+      name: 'Demo Entrenador',
+      role: 'TRAINER',
+      subscriptionPlan: 'PRO',
+    },
+  });
+
+  // El usuario demo es un CLIENT PREMIUM (entrenador + nutrición) para enseñar toda la app.
+  // El `update` migra bases de datos antiguas donde demo@ se creó como ADMIN o PRO.
+  const user = await prisma.user.upsert({
+    where: { email: 'demo@fittrack.com' },
+    update: { role: 'CLIENT', name: 'Demo Cliente', trainerId: trainer.id, subscriptionPlan: 'PREMIUM' },
+    create: {
+      email: 'demo@fittrack.com',
+      password: hashedPassword,
+      name: 'Demo Cliente',
+      role: 'CLIENT',
+      subscriptionPlan: 'PREMIUM',
+      revisionInterval: 14,
+      trainerId: trainer.id,
+    },
+  });
+  console.log(`✅ Usuarios demo: ${isProduction ? '' : 'admin@, '}trainer@, demo@fittrack.com`);
 
   // ── PLAN ─────────────────────────────────────────────────────────
   let plan = await prisma.workoutPlan.findFirst({
@@ -188,11 +242,7 @@ async function main() {
     console.log('✅ Día 4 Lower B creado')
   }
 
-  // ── NUTRICIÓN ────────────────────────────────────────────────────
-  await seedNutrition(prisma);
   await assignDemoMenu(prisma, user.id, trainer.id);
-
-  console.log('🎉 Seeder completado correctamente')
 }
 
 main()

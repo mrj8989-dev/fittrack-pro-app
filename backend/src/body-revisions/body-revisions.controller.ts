@@ -4,8 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+import { imageUpload } from '../common/uploads';
 import { BodyRevisionsService } from './body-revisions.service';
 import { CreateBodyRevisionDto } from './dto/create-body-revision.dto';
 import { UpdateRevisionIntervalDto } from './dto/update-revision-interval.dto';
@@ -17,13 +16,6 @@ import { Role } from '@prisma/client';
 import { FeatureGuard } from '../access/feature.guard';
 import { RequiresFeature } from '../access/requires-feature.decorator';
 
-const storage = diskStorage({
-  destination: './public/uploads',
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `revision-${uniqueSuffix}${extname(file.originalname)}`);
-  },
-});
 
 @ApiTags('body-revisions')
 @ApiBearerAuth()
@@ -41,7 +33,7 @@ export class BodyRevisionsController {
     { name: 'photoFront', maxCount: 1 },
     { name: 'photoBack', maxCount: 1 },
     { name: 'photoSide', maxCount: 1 },
-  ], { storage }))
+  ], imageUpload('revision')))
   create(
     @Body() dto: CreateBodyRevisionDto,
     @CurrentUser() user: any,

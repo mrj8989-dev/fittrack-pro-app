@@ -154,6 +154,10 @@ El seeder usa `upsert` — seguro ejecutarlo múltiples veces. Para añadir ejer
   - TRAINER: `trainer@fittrack.com`
   - ADMIN: `admin@fittrack.com`
 
+**En producción** (`NODE_ENV=production`) el seeder solo carga el catálogo:
+- Para crear el admin, define `ADMIN_EMAIL` y `ADMIN_PASSWORD` (12 caracteres o más) al ejecutarlo. Nunca se crea un admin con contraseña conocida.
+- `SEED_DEMO=true` añade el cliente y el entrenador demo (con `demo1234`), pero no el admin demo.
+
 ## 🛠️ Instalación desde cero
 
 ### Requisitos

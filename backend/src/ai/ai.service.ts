@@ -22,6 +22,13 @@ const HISTORY_WINDOW = 20;
 // Límite para quien tiene el asistente por una excepción del admin y no por su plan.
 const FALLBACK_DAILY_LIMIT = 20;
 const MAX_INPUT_CHARS = 2000;
+// Tope de mensajes al día entre TODOS los usuarios que gastan la clave del servidor (no cuenta a
+// quien usa su propia clave). Con el registro abierto, es lo que pone techo a la factura.
+// 0 = la clave del servidor no se usa nunca. Se lee al usar (no al cargar el módulo) para respetar el .env.
+const serverDailyLimit = () => {
+  const raw = process.env.AI_SERVER_DAILY_LIMIT?.trim();
+  return raw ? Number(raw) : 200;
+};
 
 const DAY_LABEL = [
   '',
@@ -104,6 +111,19 @@ export class AiService {
     return d;
   }
 
+  /** Mensajes de hoy enviados con la clave del servidor (usuarios sin clave propia). */
+  private serverUsageToday() {
+    return this.prisma.aiMessage.count({
+      where: {
+        role: 'user',
+        createdAt: { gte: this.startOfToday() },
+        user: {
+          OR: [{ aiSettings: null }, { aiSettings: { apiKeyEncrypted: null } }],
+        },
+      },
+    });
+  }
+
   async usage(user: AccessUser, settings?: Settings): Promise<AiUsage> {
     const s = settings ?? (await this.settings.get(user.id));
     const limit = this.dailyLimit(user, s);
@@ -170,6 +190,12 @@ export class AiService {
         limit === 0
           ? 'Tu cuenta no tiene mensajes del asistente disponibles.'
           : `Has usado tus ${limit} mensajes de hoy. Mañana tendrás ${limit} nuevos.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    if (!settings.apiKeyEncrypted && (await this.serverUsageToday()) >= serverDailyLimit()) {
+      throw new HttpException(
+        'El asistente ha alcanzado el máximo de mensajes de hoy para toda la plataforma. Vuelve mañana o usa tu propia clave de API en Ajustes.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
