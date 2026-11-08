@@ -54,36 +54,31 @@ export default function ProgressPage() {
         eyebrow={<><i className="ti ti-chart-line" aria-hidden="true" /> Progreso</>}
         title="Tu evolución"
         subtitle="Fuerza y volumen por ejercicio, y tus récords agrupados por grupo muscular"
+        actions={
+          <select
+            value={selectedExerciseId}
+            onChange={e => setSelectedExerciseId(e.target.value)}
+            className="input"
+            aria-label="Ejercicio"
+            style={{ minWidth: '300px' }}
+          >
+            <option value="">— Elige un ejercicio —</option>
+            {Object.entries(
+              exercises.reduce((acc: any, ex: any) => {
+                if (!acc[ex.muscleGroup]) acc[ex.muscleGroup] = []
+                acc[ex.muscleGroup].push(ex)
+                return acc
+              }, {})
+            ).map(([group, exs]: any) => (
+              <optgroup key={group} label={group}>
+                {exs.map((ex: any) => (
+                  <option key={ex.id} value={ex.id}>{ex.name}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+        }
       />
-
-      {/* SELECTOR DE EJERCICIO */}
-      <div className="card" style={{
-        marginBottom: '1.5rem',
-      }}>
-        <div className="section-title">
-          Selecciona un ejercicio para ver su progreso
-        </div>
-        <select
-          value={selectedExerciseId}
-          onChange={e => setSelectedExerciseId(e.target.value)}
-          className="input"
-        >
-          <option value="">— Elige un ejercicio —</option>
-          {Object.entries(
-            exercises.reduce((acc: any, ex: any) => {
-              if (!acc[ex.muscleGroup]) acc[ex.muscleGroup] = []
-              acc[ex.muscleGroup].push(ex)
-              return acc
-            }, {})
-          ).map(([group, exs]: any) => (
-            <optgroup key={group} label={group}>
-              {exs.map((ex: any) => (
-                <option key={ex.id} value={ex.id}>{ex.name}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </div>
 
       {/* GRÁFICAS DEL EJERCICIO SELECCIONADO */}
       {selectedExerciseId && (
@@ -116,11 +111,10 @@ export default function ProgressPage() {
                 />
               </div>
 
+              <div className="grid-auto" style={{ '--min': '420px', marginBottom: '1.5rem' } as React.CSSProperties}>
               {/* Gráfica de peso */}
-              <div className="card" style={{
-                marginBottom: '1.5rem',
-              }}>
-                <div className="section-title">
+              <div className="card">
+                <div className="section-title"><i className="ti ti-trending-up" aria-hidden="true" />
                   Evolución del peso — {selectedExercise?.name}
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
@@ -139,13 +133,11 @@ export default function ProgressPage() {
               </div>
 
               {/* Gráfica de volumen */}
-              <div className="card" style={{
-                marginBottom: '1.5rem',
-              }}>
-                <div className="section-title">
+              <div className="card">
+                <div className="section-title"><i className="ti ti-chart-bar" aria-hidden="true" />
                   Volumen por sesión (kg × reps) — {selectedExercise?.name}
                 </div>
-                <ResponsiveContainer width="100%" height={160}>
+                <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
@@ -157,6 +149,7 @@ export default function ProgressPage() {
                     <Line type="monotone" dataKey="volumen" stroke="var(--info)" strokeWidth={2} dot={{ fill: 'var(--info)', r: 3 }} activeDot={{ r: 5 }} />
                   </LineChart>
                 </ResponsiveContainer>
+              </div>
               </div>
             </>
           )}

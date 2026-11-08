@@ -102,9 +102,9 @@ export default function ProfileCard() {
   const showForm = editing || !data?.profile
 
   return (
-    <div style={cardStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', flexWrap: 'wrap' }}>
-        <div>
+    <div style={{ ...cardStyle, padding: '0.9rem 1.25rem' }}>
+      <div className="nutri-goals">
+        <div style={{ minWidth: '200px' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>Mis objetivos diarios</div>
           <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
             {data?.profile
@@ -112,6 +112,23 @@ export default function ProfileCard() {
               : 'Rellena tus datos y calculamos tus calorías y macros según tu objetivo'}
           </div>
         </div>
+        {targets && !showForm && (
+          <div className="nutri-goal-tiles">
+            {[
+              { label: 'Calorías', value: `${targets.kcal}`, unit: 'kcal' },
+              { label: 'Proteína', value: `${targets.protein}`, unit: 'g' },
+              { label: 'Hidratos', value: `${targets.carbs}`, unit: 'g' },
+              { label: 'Grasa', value: `${targets.fat}`, unit: 'g' },
+            ].map(t => (
+              <div key={t.label} className="inset" style={{ padding: '6px 12px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{t.label}</div>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {t.value} <span style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-secondary)' }}>{t.unit}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         {data?.profile && !editing && (
           <button onClick={() => setEditing(true)} style={secondaryButtonStyle}>
             <i className="ti ti-pencil" style={{ marginRight: '6px' }} aria-hidden="true" />
@@ -119,24 +136,6 @@ export default function ProfileCard() {
           </button>
         )}
       </div>
-
-      {targets && !showForm && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px', marginTop: '1rem' }}>
-          {[
-            { label: 'Calorías', value: `${targets.kcal}`, unit: 'kcal' },
-            { label: 'Proteína', value: `${targets.protein}`, unit: 'g' },
-            { label: 'Hidratos', value: `${targets.carbs}`, unit: 'g' },
-            { label: 'Grasa', value: `${targets.fat}`, unit: 'g' },
-          ].map(t => (
-            <div key={t.label} style={{ background: 'var(--bg-primary)', borderRadius: '10px', padding: '10px 12px' }}>
-              <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{t.label}</div>
-              <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                {t.value} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)' }}>{t.unit}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
 
       {data?.profile && !targets && !showForm && (
         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '1rem' }}>

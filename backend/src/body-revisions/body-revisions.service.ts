@@ -98,12 +98,15 @@ export class BodyRevisionsService {
       orderBy: { date: 'desc' },
     });
 
+    const revisionInterval = user?.revisionInterval || 14;
+
+    // Sin revisiones previas, toca hacer la primera hoy.
     if (!lastRevision) {
-      return { nextRevisionDate: new Date(), daysUntilRevision: 0 };
+      return { nextRevisionDate: new Date(), daysUntilRevision: 0, revisionInterval };
     }
 
     const nextDate = new Date(lastRevision.date);
-    nextDate.setDate(nextDate.getDate() + (user?.revisionInterval || 14));
+    nextDate.setDate(nextDate.getDate() + revisionInterval);
 
     const today = new Date();
     const daysUntilRevision = Math.ceil(
@@ -114,7 +117,7 @@ export class BodyRevisionsService {
       nextRevisionDate: nextDate,
       daysUntilRevision: Math.max(0, daysUntilRevision),
       lastRevisionDate: lastRevision.date,
-      revisionInterval: user?.revisionInterval || 14,
+      revisionInterval,
     };
   }
 

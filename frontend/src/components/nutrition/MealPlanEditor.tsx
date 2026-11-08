@@ -375,6 +375,7 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
         {extra}
       </div>
 
+      <div style={{ ...cardStyle, padding: '0.75rem 1rem' }} className="day-bar">
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto' }} role="tablist" aria-label="Día de la semana">
         {plan.days.map(d => (
           <button
@@ -398,15 +399,15 @@ export default function MealPlanEditor({ plan, targets, onDeleted, onDuplicated,
         ))}
       </div>
 
-      <div style={{ ...cardStyle, padding: '0.875rem 1.25rem' }}>
-        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
-          {DAY_LABEL[current.dayOfWeek - 1]}{targets ? ' frente al objetivo' : ''}
+      <div className="day-macros">
+        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+          {DAY_LABEL[current.dayOfWeek - 1]}
+          {targets && <div style={{ fontSize: '11px', fontWeight: 500, color: 'var(--text-tertiary)' }}>frente al objetivo</div>}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-          {MACRO_META.map(m => (
-            <MacroBar key={m.key} label={m.label} unit={m.unit} value={current.totals[m.key]} target={targets?.[m.key]} />
-          ))}
-        </div>
+        {MACRO_META.map(m => (
+          <MacroBar key={m.key} label={m.label} unit={m.unit} value={current.totals[m.key]} target={targets?.[m.key]} />
+        ))}
+      </div>
       </div>
 
       <div className="meals-grid">

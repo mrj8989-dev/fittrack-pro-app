@@ -17,7 +17,7 @@ const ROLES: Role[] = ['CLIENT', 'TRAINER', 'ADMIN']
 const PLANS: SubscriptionPlan[] = ['FREE', 'PRO', 'PREMIUM']
 
 const ROLE_BADGE: Record<Role, string> = { ADMIN: 'badge-danger', TRAINER: 'badge-info', CLIENT: 'badge-accent' }
-const ROLE_ICON: Record<Role, string> = { ADMIN: 'ti-shield-star', TRAINER: 'ti-whistle', CLIENT: 'ti-user' }
+const ROLE_ICON: Record<Role, string> = { ADMIN: 'ti-shield-star', TRAINER: 'ti-user-star', CLIENT: 'ti-user' }
 const PLAN_BADGE: Record<SubscriptionPlan, string> = { FREE: '', PRO: 'badge-accent', PREMIUM: 'badge-warning' }
 
 type RoleFilter = Role | 'ALL'
@@ -218,8 +218,8 @@ function UsersManager({ trainers, onEdit, counts }: {
   ]
 
   return (
-    <section className="card" style={{ padding: 0, overflow: 'hidden' }}>
-      <div style={{ padding: '1.25rem 1.25rem 1rem', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
+    <section className="card admin-users">
+      <div style={{ padding: '1rem 1.25rem', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)' }}>
         <div className="tabs" role="tablist">
           {tabs.map(t => (
             <button key={t.id} role="tab" aria-selected={roleFilter === t.id} className={`tab${roleFilter === t.id ? ' active' : ''}`} onClick={() => setRoleFilter(t.id)}>
@@ -239,7 +239,7 @@ function UsersManager({ trainers, onEdit, counts }: {
       ) : users.length === 0 ? (
         <EmptyState icon="ti-users" title="Sin resultados">No hay usuarios que coincidan con el filtro</EmptyState>
       ) : (
-        <div>
+        <div className="admin-users-list">
           {users.map(u => (
             <div key={u.id} className="user-row">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
@@ -336,7 +336,7 @@ export default function AdminPage() {
           <p className="hero-subtitle">
             {stats.users.total} usuarios · {stats.sessions.last7d} sesiones esta semana · {stats.exercises} ejercicios en el catálogo
           </p>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '1.25rem' }}>
+          <div className="hero-actions">
             <button className="btn btn-primary" onClick={() => setModal({})}>
               <i className="ti ti-user-plus" aria-hidden="true" /> Nuevo usuario
             </button>
@@ -348,9 +348,9 @@ export default function AdminPage() {
       </section>
 
       {/* MÉTRICAS */}
-      <div className="grid-auto" style={{ '--min': '180px', marginBottom: '14px' } as React.CSSProperties}>
+      <div className="grid-auto stats-grid" style={{ '--min': '180px', marginBottom: '14px' } as React.CSSProperties}>
         <StatCard icon="ti-users" label="Usuarios" value={stats.users.total} sub={`+${stats.users.new30d} en 30 días`} tone="positive" />
-        <StatCard icon="ti-whistle" label="Entrenadores" value={stats.users.trainers} sub={`${(stats.users.clients / Math.max(stats.users.trainers, 1)).toFixed(1)} clientes / entrenador`} />
+        <StatCard icon="ti-user-star" label="Entrenadores" value={stats.users.trainers} sub={`${(stats.users.clients / Math.max(stats.users.trainers, 1)).toFixed(1)} clientes / entrenador`} />
         <StatCard
           icon="ti-user"
           label="Clientes"
@@ -363,12 +363,16 @@ export default function AdminPage() {
         <StatCard icon="ti-salad" label="Menús de clientes" value={stats.mealPlans} />
       </div>
 
-      {/* ACTIVIDAD + PLANES */}
-      <div className="admin-grid">
-        <div className="card">
-          <h2 className="section-title"><i className="ti ti-activity" aria-hidden="true" /> Actividad · últimas 2 semanas</h2>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={activity} barSize={18}>
+      <div className="admin-main">
+        <div className="admin-users-col">
+          <UsersManager trainers={trainers} counts={counts} onEdit={u => setModal({ user: u })} />
+        </div>
+
+        <aside className="admin-side">
+          <div className="card">
+            <h2 className="section-title" style={{ marginBottom: '2px' }}><i className="ti ti-activity" aria-hidden="true" /> Actividad · 14 días</h2>
+          <ResponsiveContainer width="100%" height={90}>
+            <BarChart data={activity} barSize={10}>
               <defs>
                 <linearGradient id="adminAct" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="var(--accent-light)" />
@@ -380,11 +384,11 @@ export default function AdminPage() {
               <Bar dataKey="sessions" fill="url(#adminAct)" radius={[6, 6, 2, 2]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+          </div>
 
-        <div className="card">
+          <div className="card">
           <h2 className="section-title"><i className="ti ti-crown" aria-hidden="true" /> Planes de clientes</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {PLANS.map(p => {
               const n = stats.clientsByPlan[p] ?? 0
               return (
@@ -399,10 +403,10 @@ export default function AdminPage() {
             })}
           </div>
 
-          <div className="divider" style={{ margin: '1.25rem 0 1rem' }} />
+          <div className="divider" style={{ margin: '1rem 0 0.75rem' }} />
           <h3 className="section-title" style={{ marginBottom: '10px' }}><i className="ti ti-sparkles" aria-hidden="true" /> Últimas altas</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            {stats.recentUsers.map(u => (
+            {stats.recentUsers.slice(0, 3).map(u => (
               <button key={u.id} className="list-item" onClick={() => setModal({ user: u })}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                   <Avatar name={u.name} photoUrl={u.profilePhoto} size={28} />
@@ -412,17 +416,9 @@ export default function AdminPage() {
               </button>
             ))}
           </div>
-        </div>
+          </div>
+        </aside>
       </div>
-
-      {/* USUARIOS */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '1.75rem 0 12px', gap: '12px', flexWrap: 'wrap' }}>
-        <h2 className="section-title" style={{ margin: 0, fontSize: '16px' }}><i className="ti ti-users-group" aria-hidden="true" /> Usuarios</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => setModal({})}>
-          <i className="ti ti-plus" aria-hidden="true" /> Nuevo usuario
-        </button>
-      </div>
-      <UsersManager trainers={trainers} counts={counts} onEdit={u => setModal({ user: u })} />
 
       {modal && <UserFormModal key={modal.user?.id ?? 'new'} user={modal.user} trainers={trainers} onClose={() => setModal(null)} />}
     </div>
