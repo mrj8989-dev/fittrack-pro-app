@@ -4,6 +4,7 @@ import { useTheme } from '../../context/ThemeContext'
 import { useUnreadCount } from '../../hooks/useMessages'
 import Avatar from '../Avatar'
 import { NAV_BY_ROLE, ROLE_LABEL, isRole } from '../../lib/roleAccess'
+import { PLAN_INFO, hasFeature, isPlan, minimumPlanFor } from '../../lib/planAccess'
 
 const CHAT_BADGE_PATH: Record<string, string> = { TRAINER: '/entrenador', CLIENT: '/chat' }
 
@@ -17,8 +18,10 @@ const navClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
   const { mode, toggleMode } = useTheme()
-  const { data: unreadCount = 0 } = useUnreadCount()
+  const { data: unreadCount = 0 } = useUnreadCount(hasFeature(user, 'trainer'))
   const badgePath = user?.role ? CHAT_BADGE_PATH[user.role] : undefined
+  const isClient = user?.role === 'CLIENT'
+  const plan = isClient && isPlan(user?.subscriptionPlan) ? user.subscriptionPlan : null
 
   return (
     <>
@@ -28,23 +31,45 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="brand" style={{ marginBottom: '0.5rem' }}>
           <span className="brand-mark"><i className="ti ti-bolt" aria-hidden="true" /></span>
           <span className="brand-name">Fit<span>Track</span></span>
-          <span className="badge badge-accent" style={{ marginLeft: 'auto', height: '20px', fontSize: '10px' }}>PRO</span>
+          {plan && (
+            <span className={`badge ${plan === 'FREE' ? '' : 'badge-accent'}`} style={{ marginLeft: 'auto', height: '20px', fontSize: '10px' }}>
+              {plan}
+            </span>
+          )}
         </div>
 
         <div className="nav-label">Menú</div>
-        {(isRole(user?.role) ? NAV_BY_ROLE[user.role] : []).map(item => (
-          <NavLink key={item.path} to={item.path} end={item.path === '/'} onClick={onClose} className={navClass}>
-            <i className={`ti ${item.icon}`} aria-hidden="true" />
-            {item.label}
-            {item.path === badgePath && unreadCount > 0 && (
-              <span className="nav-count">{unreadCount > 9 ? '9+' : unreadCount}</span>
-            )}
-          </NavLink>
-        ))}
+        {(isRole(user?.role) ? NAV_BY_ROLE[user.role] : []).map(item => {
+          const locked = !!item.feature && !hasFeature(user, item.feature)
+          return (
+            <NavLink
+              key={item.path}
+              to={item.path}
+              end={item.path === '/'}
+              onClick={onClose}
+              className={({ isActive }) => `${navClass({ isActive })}${locked ? ' locked' : ''}`}
+              title={locked ? `Incluido en el plan ${PLAN_INFO[minimumPlanFor(item.feature!)].name}` : undefined}
+            >
+              <i className={`ti ${item.icon}`} aria-hidden="true" />
+              {item.label}
+              {locked && <i className="ti ti-lock nav-lock" aria-label="Bloqueado" />}
+              {!locked && item.path === badgePath && unreadCount > 0 && (
+                <span className="nav-count">{unreadCount > 9 ? '9+' : unreadCount}</span>
+              )}
+            </NavLink>
+          )
+        })}
 
         <div style={{ flex: 1, minHeight: '1rem' }} />
 
         <div className="nav-label">Cuenta</div>
+        {isClient && (
+          <NavLink to="/planes" onClick={onClose} className={navClass}>
+            <i className="ti ti-crown" aria-hidden="true" />
+            Mi plan
+            {plan === 'FREE' && <span className="badge badge-solid" style={{ marginLeft: 'auto', height: '18px', fontSize: '10px' }}>Mejorar</span>}
+          </NavLink>
+        )}
         <NavLink to="/ajustes" onClick={onClose} className={navClass}>
           <i className="ti ti-settings" aria-hidden="true" />
           Ajustes

@@ -43,7 +43,7 @@ export default function AddClientModal({ onClose, onAdded }: { onClose: () => vo
             <input id="ac-pass" className="input" type="password" autoComplete="new-password" value={form.password} onChange={set('password')} minLength={6} placeholder="Mínimo 6 caracteres" />
           </div>
           <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-            <i className="ti ti-info-circle" aria-hidden="true" /> Si el cliente ya tiene cuenta y no tiene entrenador, basta con su email.
+            <i className="ti ti-info-circle" aria-hidden="true" /> Las cuentas nuevas se crean con el plan PRO. Si el cliente ya tiene cuenta, basta con su email: debe ser PRO o PREMIUM y no tener entrenador.
           </p>
         </div>
 

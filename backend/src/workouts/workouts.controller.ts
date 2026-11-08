@@ -10,10 +10,13 @@ import { AddExerciseDto } from './dto/add-exercise.dto';
 import { ReorderExercisesDto } from './dto/reorder-exercises.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { FeatureGuard } from '../access/feature.guard';
+import { RequiresFeature } from '../access/requires-feature.decorator';
 
 @ApiTags('workouts')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureGuard)
+@RequiresFeature('training')
 @Controller('workouts')
 export class WorkoutsController {
   constructor(private workoutsService: WorkoutsService) {}

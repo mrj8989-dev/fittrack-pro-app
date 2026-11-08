@@ -65,6 +65,19 @@ export class AuthService {
     return this.generateToken(updated);
   }
 
+  /** Datos públicos del usuario autenticado (para refrescar plan, rol o foto sin volver a entrar). */
+  me(user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+    profilePhoto?: string | null;
+    mustChangePassword?: boolean;
+    subscriptionPlan?: string;
+  }) {
+    return this.generateToken(user).user;
+  }
+
   async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new UnauthorizedException();
@@ -92,6 +105,7 @@ export class AuthService {
     role: string;
     profilePhoto?: string | null;
     mustChangePassword?: boolean;
+    subscriptionPlan?: string;
   }) {
     const payload = { sub: user.id, email: user.email };
     return {
@@ -103,6 +117,7 @@ export class AuthService {
         role: user.role,
         profilePhoto: user.profilePhoto ?? null,
         mustChangePassword: user.mustChangePassword ?? false,
+        subscriptionPlan: user.subscriptionPlan ?? null,
       },
     };
   }

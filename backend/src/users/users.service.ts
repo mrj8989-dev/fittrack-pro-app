@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '@prisma/client';
+import { Role, SubscriptionPlan } from '@prisma/client';
+import { canHaveTrainer } from '../access/plan-features';
 import * as fs from 'fs';
 import * as bcrypt from 'bcryptjs';
 import * as path from 'path';
@@ -9,9 +10,10 @@ import * as path from 'path';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  /** Sin distinguir mayúsculas: el admin guarda los emails en minúsculas y la gente no siempre los escribe así. */
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({
-      where: { email },
+    return this.prisma.user.findFirst({
+      where: { email: { equals: email.trim(), mode: 'insensitive' } },
     });
   }
 
@@ -78,6 +80,8 @@ export class UsersService {
           name: dto.name.trim(),
           password: await bcrypt.hash(dto.password, 10),
           role: Role.CLIENT,
+          // Llega de la mano de su entrenador: entra con el plan que lo incluye.
+          subscriptionPlan: SubscriptionPlan.PRO,
           trainerId,
           mustChangePassword: true,
         },
@@ -87,6 +91,11 @@ export class UsersService {
 
     if (existing.role !== Role.CLIENT) {
       throw new ConflictException('Ese email pertenece a un entrenador o administrador, no a un cliente');
+    }
+    if (!canHaveTrainer(existing.subscriptionPlan)) {
+      throw new ForbiddenException(
+        'Ese cliente tiene el plan FREE. Solo los clientes PRO o PREMIUM pueden tener entrenador: pide a un administrador que le cambie el plan.',
+      );
     }
     if (existing.trainerId === trainerId) {
       throw new ConflictException('Ese cliente ya está en tu cartera');

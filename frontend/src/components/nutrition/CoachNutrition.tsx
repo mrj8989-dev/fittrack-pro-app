@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useClients } from '../../hooks/useTrainerClients'
+import { hasFeature } from '../../lib/planAccess'
+import { apiErrorMessage } from '../../lib/apiError'
 import {
   useAssignMealPlan, useClientMealPlans, useCreateMealPlan, useMealPlan, useMealTemplates, useNutritionProfile,
 } from '../../hooks/useNutrition'
@@ -28,7 +30,9 @@ function PlanCard({ plan, selected, onClick }: { plan: MealPlanSummary; selected
 
 /** Panel del entrenador para asignar una copia del menú a uno de sus clientes. */
 function AssignPanel({ plan }: { plan: MealPlan }) {
-  const { data: clients = [] } = useClients()
+  const { data: allClients = [] } = useClients()
+  // Nutrición es del plan PREMIUM: solo a esos clientes se les puede asignar menú.
+  const clients = allClients.filter(c => hasFeature({ role: 'CLIENT', subscriptionPlan: c.subscriptionPlan }, 'nutrition'))
   const [clientId, setClientId] = useState('')
   const [kcalDraft, setKcal] = useState<string | null>(null)
   const [assignedTo, setAssignedTo] = useState<string | null>(null)
@@ -39,7 +43,13 @@ function AssignPanel({ plan }: { plan: MealPlan }) {
   const kcal = kcalDraft ?? (clientProfile?.targets ? String(clientProfile.targets.kcal) : '')
 
   if (!clients.length) {
-    return <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '12px' }}>Todavía no hay clientes a los que asignar menús.</div>
+    return (
+      <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '12px' }}>
+        <i className="ti ti-lock" aria-hidden="true" /> {allClients.length
+          ? 'Ninguno de tus clientes tiene el plan PREMIUM, que es el que incluye nutrición.'
+          : 'Todavía no hay clientes a los que asignar menús.'}
+      </div>
+    )
   }
 
   return (
@@ -71,7 +81,12 @@ function AssignPanel({ plan }: { plan: MealPlan }) {
         <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Este cliente aún no ha calculado sus objetivos.</span>
       )}
       {assignedTo && <span style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>✓ Asignado a {assignedTo}</span>}
-      {assign.isError && <span style={{ fontSize: '12px', color: 'var(--danger)' }}>No se pudo asignar.</span>}
+      {assign.isError && <span style={{ fontSize: '12px', color: 'var(--danger)' }}>{apiErrorMessage(assign.error, 'No se pudo asignar.')}</span>}
+      {allClients.length > clients.length && (
+        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexBasis: '100%' }}>
+          <i className="ti ti-info-circle" aria-hidden="true" /> Solo aparecen tus clientes PREMIUM: el plan PRO no incluye nutrición.
+        </span>
+      )}
     </form>
   )
 }

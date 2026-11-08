@@ -22,11 +22,12 @@ export function useSendMessage() {
   })
 }
 
-export function useUnreadCount() {
+export function useUnreadCount(enabled = true) {
   return useQuery({
     queryKey: ['unread-count'],
     queryFn: () => api.get('/messages/unread-count').then(r => r.data.count as number),
     refetchInterval: 5000,
+    enabled,
   })
 }
 
