@@ -1,14 +1,17 @@
 import { Injectable, NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role, SubscriptionPlan } from '@prisma/client';
-import { canHaveTrainer } from '../access/plan-features';
+import { AccessService } from '../access/access.service';
 import * as fs from 'fs';
 import * as bcrypt from 'bcryptjs';
 import * as path from 'path';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private access: AccessService,
+  ) {}
 
   /** Sin distinguir mayúsculas: el admin guarda los emails en minúsculas y la gente no siempre los escribe así. */
   async findByEmail(email: string) {
@@ -92,7 +95,7 @@ export class UsersService {
     if (existing.role !== Role.CLIENT) {
       throw new ConflictException('Ese email pertenece a un entrenador o administrador, no a un cliente');
     }
-    if (!canHaveTrainer(existing.subscriptionPlan)) {
+    if (!(await this.access.entitled(existing, 'trainer'))) {
       throw new ForbiddenException(
         'Ese cliente tiene el plan FREE. Solo los clientes PRO o PREMIUM pueden tener entrenador: pide a un administrador que le cambie el plan.',
       );

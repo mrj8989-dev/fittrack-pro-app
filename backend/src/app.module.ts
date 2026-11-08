@@ -13,6 +13,7 @@ import { BodyRevisionsModule } from './body-revisions/body-revisions.module';
 import { MessagesModule } from './messages/messages.module';
 import { NutritionModule } from './nutrition/nutrition.module';
 import { AdminModule } from './admin/admin.module';
+import { AccessModule } from './access/access.module';
 
 
 @Module({
@@ -33,6 +34,7 @@ import { AdminModule } from './admin/admin.module';
     MessagesModule,
     NutritionModule,
     AdminModule,
+    AccessModule,
   ],
 })
 export class AppModule {}

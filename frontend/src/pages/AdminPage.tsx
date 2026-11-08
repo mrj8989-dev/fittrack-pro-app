@@ -12,6 +12,7 @@ import { EmptyState, Loader, Modal, ProgressBar, StatCard } from '../components/
 import { chartTooltipStyle } from '../lib/chart'
 import { ROLE_LABEL } from '../lib/roleAccess'
 import { canHaveTrainer } from '../lib/planAccess'
+import { GlobalModulesModal, UserModulesSection } from '../components/admin/ModuleControls'
 import type { Role } from '../lib/roleAccess'
 
 const ROLES: Role[] = ['CLIENT', 'TRAINER', 'ADMIN']
@@ -213,6 +214,10 @@ function UserFormModal({ user, trainers, onClose }: {
             </p>
           )}
         </div>
+
+        {isEdit && user.role !== 'ADMIN' && (
+          <UserModulesSection userId={user.id} isClient={user.role === 'CLIENT'} />
+        )}
 
         {isEdit && !isSelf && (
           <div className="inset" style={{ marginTop: '14px', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -432,6 +437,7 @@ export default function AdminPage() {
   const { data: stats, isLoading } = useAdminStats()
   const { data: trainers = [] } = useAdminUsers({ role: 'TRAINER' })
   const [modal, setModal] = useState<{ user?: AdminUser } | null>(null)
+  const [showModules, setShowModules] = useState(false)
 
   if (isLoading || !stats) return <Loader label="Cargando panel..." />
 
@@ -463,6 +469,7 @@ export default function AdminPage() {
             <button className="btn btn-primary" onClick={() => setModal({})}>
               <i className="ti ti-user-plus" aria-hidden="true" /> Nuevo usuario
             </button>
+            <button className="btn btn-glass" onClick={() => setShowModules(true)}><i className="ti ti-puzzle" aria-hidden="true" /> Módulos</button>
             <Link to="/entrenador" className="btn btn-glass"><i className="ti ti-users" aria-hidden="true" /> Ver clientes</Link>
             <Link to="/nutricion" className="btn btn-glass"><i className="ti ti-salad" aria-hidden="true" /> Menús</Link>
             <Link to="/ejercicios" className="btn btn-glass"><i className="ti ti-list-search" aria-hidden="true" /> Ejercicios</Link>
@@ -543,6 +550,7 @@ export default function AdminPage() {
         </aside>
       </div>
 
+      {showModules && <GlobalModulesModal onClose={() => setShowModules(false)} />}
       {modal && <UserFormModal key={modal.user?.id ?? 'new'} user={modal.user} trainers={trainers} onClose={() => setModal(null)} />}
     </div>
   )

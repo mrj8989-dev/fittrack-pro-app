@@ -4,7 +4,8 @@ import { useTheme } from '../../context/ThemeContext'
 import { useUnreadCount } from '../../hooks/useMessages'
 import Avatar from '../Avatar'
 import { NAV_BY_ROLE, ROLE_LABEL, isRole } from '../../lib/roleAccess'
-import { PLAN_INFO, hasFeature, isPlan, minimumPlanFor } from '../../lib/planAccess'
+import { PLAN_INFO, isPlan, minimumPlanFor } from '../../lib/planAccess'
+import { useFeatureState } from '../../hooks/useAccess'
 
 const CHAT_BADGE_PATH: Record<string, string> = { TRAINER: '/entrenador', CLIENT: '/chat' }
 
@@ -18,7 +19,8 @@ const navClass = ({ isActive }: { isActive: boolean }) => `nav-link${isActive ? 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
   const { mode, toggleMode } = useTheme()
-  const { data: unreadCount = 0 } = useUnreadCount(hasFeature(user, 'trainer'))
+  const featureState = useFeatureState()
+  const { data: unreadCount = 0 } = useUnreadCount(featureState('trainer') === 'available')
   const badgePath = user?.role ? CHAT_BADGE_PATH[user.role] : undefined
   const isClient = user?.role === 'CLIENT'
   const plan = isClient && isPlan(user?.subscriptionPlan) ? user.subscriptionPlan : null
@@ -40,7 +42,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         <div className="nav-label">Menú</div>
         {(isRole(user?.role) ? NAV_BY_ROLE[user.role] : []).map(item => {
-          const locked = !!item.feature && !hasFeature(user, item.feature)
+          const state = item.feature ? featureState(item.feature) : 'available'
+          // Apagado por el admin: no se enseña. Fuera de su plan: candado que lleva a los planes.
+          if (state === 'hidden') return null
+          const locked = state === 'locked'
           return (
             <NavLink
               key={item.path}

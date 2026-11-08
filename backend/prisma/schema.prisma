@@ -51,6 +51,7 @@ model User {
   nutritionProfile NutritionProfile?
   mealPlans        MealPlan[]
   assignedMealPlans MealPlan[]      @relation("AssignedMealPlans")
+  moduleOverrides  UserModuleOverride[]
 }
 
 model Exercise {
@@ -258,4 +259,21 @@ model MealItem {
   foodId String
   food   Food   @relation(fields: [foodId], references: [id])
   grams  Float
+}
+
+// Interruptores de módulos (ver backend/src/access). Sin fila = módulo activado.
+model ModuleSetting {
+  module    String   @id
+  enabled   Boolean
+  updatedAt DateTime @updatedAt
+}
+
+// Excepción por usuario: fuerza un módulo activado o desactivado por encima de su plan.
+model UserModuleOverride {
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module  String
+  enabled Boolean
+
+  @@id([userId, module])
 }

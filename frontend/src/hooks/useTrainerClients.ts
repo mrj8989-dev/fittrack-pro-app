@@ -8,6 +8,8 @@ export interface TrainerClient {
   subscriptionPlan: string
   createdAt: string
   profilePhoto: string | null
+  /** Se le pueden asignar menús (plan PREMIUM o excepción del admin). */
+  nutritionEnabled: boolean
 }
 
 export function useClients(enabled = true) {

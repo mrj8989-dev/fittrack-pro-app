@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -6,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -23,6 +25,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AdminService } from './admin.service';
 import { AdminCreateUserDto } from './dto/create-user.dto';
 import { AdminUpdateUserDto } from './dto/update-user.dto';
+import { SetModuleDto, SetUserModuleDto } from './dto/module-toggle.dto';
+import { AccessService, isToggleable } from '../access/access.service';
 
 @ApiTags('admin')
 @ApiBearerAuth()
@@ -30,7 +34,47 @@ import { AdminUpdateUserDto } from './dto/update-user.dto';
 @Roles(Role.ADMIN)
 @Controller('admin')
 export class AdminController {
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private access: AccessService,
+  ) {}
+
+  @Get('modules')
+  @ApiOperation({ summary: 'Interruptores generales de los módulos' })
+  getModules() {
+    return this.access.getGlobalModules();
+  }
+
+  @Put('modules/:module')
+  @ApiOperation({
+    summary: 'Activar o desactivar un módulo para toda la plataforma',
+  })
+  setModule(@Param('module') module: string, @Body() dto: SetModuleDto) {
+    if (!isToggleable(module))
+      throw new BadRequestException('Módulo desconocido');
+    return this.access.setGlobalModule(module, dto.enabled);
+  }
+
+  @Get('users/:id/modules')
+  @ApiOperation({
+    summary: 'Módulos de un usuario: excepción, plan y acceso final',
+  })
+  getUserModules(@Param('id') id: string) {
+    return this.adminService.getUserModules(id);
+  }
+
+  @Put('users/:id/modules/:module')
+  @ApiOperation({
+    summary:
+      'Forzar un módulo activado/desactivado para un usuario (null = según su plan)',
+  })
+  setUserModule(
+    @Param('id') id: string,
+    @Param('module') module: string,
+    @Body() dto: SetUserModuleDto,
+  ) {
+    return this.adminService.setUserModule(id, module, dto.enabled ?? null);
+  }
 
   @Get('stats')
   @ApiOperation({ summary: 'Métricas globales de la plataforma' })
