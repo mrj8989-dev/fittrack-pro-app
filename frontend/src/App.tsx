@@ -16,7 +16,8 @@ import AdminPage from './pages/AdminPage'
 import ForcePasswordChangePage from './pages/ForcePasswordChangePage'
 import PlansPage from './pages/PlansPage'
 import { canAccess, featureForPath, homePathFor } from './lib/roleAccess'
-import { hasFeature } from './lib/planAccess'
+import { useFeatureState } from './hooks/useAccess'
+import { EmptyState } from './components/ui'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -35,10 +36,21 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 // plan no incluye el módulo, le enseña los planes (en el inicio, sin el aviso de "bloqueado").
 function RoleRoute({ path, children }: { path: string; children: React.ReactNode }) {
   const { user } = useAuth()
+  const featureState = useFeatureState()
   if (!canAccess(user?.role, path)) return <Navigate to={homePathFor(user?.role)} replace />
   const feature = featureForPath(path)
-  if (feature && !hasFeature(user, feature)) {
+  const state = feature ? featureState(feature) : 'available'
+  if (state === 'locked') {
     return <PlansPage key={path} lockedFeature={path === '/' ? undefined : feature} />
+  }
+  if (state === 'hidden') {
+    return (
+      <div className="page card" style={{ maxWidth: '560px', marginTop: '3rem' }}>
+        <EmptyState icon="ti-plug-connected-x" title="Módulo no disponible">
+          El administrador ha desactivado esta sección para tu cuenta.
+        </EmptyState>
+      </div>
+    )
   }
   return <>{children}</>
 }

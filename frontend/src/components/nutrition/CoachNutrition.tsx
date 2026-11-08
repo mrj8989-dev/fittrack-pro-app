@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useClients } from '../../hooks/useTrainerClients'
-import { hasFeature } from '../../lib/planAccess'
 import { apiErrorMessage } from '../../lib/apiError'
 import {
   useAssignMealPlan, useClientMealPlans, useCreateMealPlan, useMealPlan, useMealTemplates, useNutritionProfile,
@@ -31,8 +30,8 @@ function PlanCard({ plan, selected, onClick }: { plan: MealPlanSummary; selected
 /** Panel del entrenador para asignar una copia del menú a uno de sus clientes. */
 function AssignPanel({ plan }: { plan: MealPlan }) {
   const { data: allClients = [] } = useClients()
-  // Nutrición es del plan PREMIUM: solo a esos clientes se les puede asignar menú.
-  const clients = allClients.filter(c => hasFeature({ role: 'CLIENT', subscriptionPlan: c.subscriptionPlan }, 'nutrition'))
+  // Nutrición es del plan PREMIUM (o la ha activado el admin para ese cliente).
+  const clients = allClients.filter(c => c.nutritionEnabled)
   const [clientId, setClientId] = useState('')
   const [kcalDraft, setKcal] = useState<string | null>(null)
   const [assignedTo, setAssignedTo] = useState<string | null>(null)
@@ -46,7 +45,7 @@ function AssignPanel({ plan }: { plan: MealPlan }) {
     return (
       <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '12px' }}>
         <i className="ti ti-lock" aria-hidden="true" /> {allClients.length
-          ? 'Ninguno de tus clientes tiene el plan PREMIUM, que es el que incluye nutrición.'
+          ? 'Ninguno de tus clientes tiene nutrición: hace falta el plan PREMIUM o que el admin se la active.'
           : 'Todavía no hay clientes a los que asignar menús.'}
       </div>
     )
@@ -84,7 +83,7 @@ function AssignPanel({ plan }: { plan: MealPlan }) {
       {assign.isError && <span style={{ fontSize: '12px', color: 'var(--danger)' }}>{apiErrorMessage(assign.error, 'No se pudo asignar.')}</span>}
       {allClients.length > clients.length && (
         <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexBasis: '100%' }}>
-          <i className="ti ti-info-circle" aria-hidden="true" /> Solo aparecen tus clientes PREMIUM: el plan PRO no incluye nutrición.
+          <i className="ti ti-info-circle" aria-hidden="true" /> Solo aparecen los clientes con nutrición (plan PREMIUM o activada por el admin).
         </span>
       )}
     </form>

@@ -12,6 +12,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
 import { FeatureGuard } from '../access/feature.guard';
 import { RequiresFeature } from '../access/requires-feature.decorator';
+import { AccessService } from '../access/access.service';
 
 const photoStorage = diskStorage({
   destination: './public/uploads',
@@ -27,15 +28,23 @@ const photoStorage = diskStorage({
 @Roles(Role.TRAINER)
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private access: AccessService,
+  ) {}
 
   @Get('clients')
   @Roles(Role.TRAINER, Role.ADMIN)
   @ApiOperation({ summary: 'Clientes del entrenador autenticado (el admin obtiene todos los clientes)' })
-  findClients(@CurrentUser() user: any) {
-    return user.role === Role.ADMIN
-      ? this.usersService.findAllClients()
-      : this.usersService.findClientsByTrainer(user.id);
+  async findClients(@CurrentUser() user: any) {
+    const clients = user.role === Role.ADMIN
+      ? await this.usersService.findAllClients()
+      : await this.usersService.findClientsByTrainer(user.id);
+    // Si se le pueden asignar menús (plan PREMIUM o excepción del admin).
+    return Promise.all(clients.map(async c => ({
+      ...c,
+      nutritionEnabled: await this.access.entitled({ ...c, role: Role.CLIENT }, 'nutrition'),
+    })));
   }
 
   @Post('clients')

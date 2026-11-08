@@ -11,7 +11,12 @@ import * as bcrypt from 'bcryptjs';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
-import { canHaveTrainer } from '../access/plan-features';
+import {
+  AccessService,
+  TOGGLEABLE_MODULES,
+  isToggleable,
+} from '../access/access.service';
+import { hasFeature } from '../access/plan-features';
 import { AdminCreateUserDto } from './dto/create-user.dto';
 import { AdminUpdateUserDto } from './dto/update-user.dto';
 
@@ -46,7 +51,10 @@ const DAY = 24 * 60 * 60 * 1000;
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private access: AccessService,
+  ) {}
 
   async getStats() {
     const now = Date.now();
@@ -170,7 +178,15 @@ export class AdminService {
         throw new BadRequestException(
           'Solo los clientes pueden tener entrenador',
         );
-      if (!canHaveTrainer(dto.subscriptionPlan ?? 'FREE'))
+      const entitled = await this.access.entitled(
+        {
+          id: '',
+          role: dto.role,
+          subscriptionPlan: dto.subscriptionPlan ?? 'FREE',
+        },
+        'trainer',
+      );
+      if (!entitled)
         throw new BadRequestException(
           'Solo los clientes PRO o PREMIUM pueden tener entrenador',
         );
@@ -212,6 +228,10 @@ export class AdminService {
 
     const nextRole = dto.role ?? user.role;
     const nextPlan = dto.subscriptionPlan ?? user.subscriptionPlan;
+    const trainerAllowed = await this.access.entitled(
+      { id, role: nextRole, subscriptionPlan: nextPlan },
+      'trainer',
+    );
     const data: Prisma.UserUncheckedUpdateInput = {
       name: dto.name,
       email: dto.email?.toLowerCase(),
@@ -232,7 +252,7 @@ export class AdminService {
           throw new BadRequestException(
             'Solo los clientes pueden tener entrenador',
           );
-        if (!canHaveTrainer(nextPlan))
+        if (!trainerAllowed)
           throw new BadRequestException(
             'Solo los clientes PRO o PREMIUM pueden tener entrenador',
           );
@@ -241,8 +261,7 @@ export class AdminService {
       data.trainerId = dto.trainerId;
     }
     // Un cliente que baja a FREE pierde el entrenador (sus datos se conservan).
-    if (nextRole === Role.CLIENT && !canHaveTrainer(nextPlan))
-      data.trainerId = null;
+    if (nextRole === Role.CLIENT && !trainerAllowed) data.trainerId = null;
     // Un usuario que deja de ser cliente no puede seguir colgando de un entrenador.
     if (nextRole !== Role.CLIENT) data.trainerId = null;
 
@@ -256,6 +275,38 @@ export class AdminService {
       }
       return tx.user.update({ where: { id }, data, select: userSelect });
     });
+  }
+
+  // ── Módulos ────────────────────────────────────────────────
+
+  /** Estado de cada módulo para un usuario: excepción, lo que da su plan y el resultado final. */
+  async getUserModules(id: string) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    const [overrides, effective] = await Promise.all([
+      this.access.getUserOverrides(id),
+      this.access.resolveAll(user),
+    ]);
+    return TOGGLEABLE_MODULES.map((module) => ({
+      module,
+      override: overrides[module] ?? null,
+      includedByPlan: hasFeature(user, module),
+      effective: effective[module],
+    }));
+  }
+
+  async setUserModule(id: string, module: string, enabled: boolean | null) {
+    if (!isToggleable(module))
+      throw new BadRequestException('Módulo desconocido');
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    if (user.role === Role.ADMIN) {
+      throw new BadRequestException(
+        'Los administradores tienen siempre todos los módulos',
+      );
+    }
+    await this.access.setUserOverride(id, module, enabled);
+    return this.getUserModules(id);
   }
 
   /**
