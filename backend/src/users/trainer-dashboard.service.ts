@@ -66,7 +66,7 @@ export class TrainerDashboardService {
       }),
       this.prisma.workoutPlan.groupBy({
         by: ['userId'],
-        where: { userId: { in: ids } },
+        where: { userId: { in: ids }, isTemplate: false },
         _count: true,
       }),
       this.prisma.mealPlan.groupBy({
@@ -89,6 +89,7 @@ export class TrainerDashboardService {
           completed: true,
           duration: true,
           userId: true,
+          workoutName: true,
           workout: { select: { name: true } },
           sets: { select: { weight: true, reps: true } },
         },
@@ -171,7 +172,7 @@ export class TrainerDashboardService {
         duration: s.duration,
         clientId: s.userId,
         clientName: names.get(s.userId) ?? '',
-        workoutName: s.workout?.name ?? 'Sesión',
+        workoutName: s.workout?.name ?? s.workoutName ?? 'Sesión',
         sets: s.sets.length,
         volume: Math.round(
           s.sets.reduce((v, x) => v + (x.weight ?? 0) * (x.reps ?? 0), 0),

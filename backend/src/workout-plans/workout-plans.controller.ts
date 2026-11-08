@@ -6,6 +6,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { WorkoutPlansService } from './workout-plans.service';
 import { CreateWorkoutPlanDto } from './dto/create-workout-plan.dto';
 import { UpdateWorkoutPlanDto } from './dto/update-workout-plan.dto';
+import { CopyWorkoutPlanDto } from './dto/copy-workout-plan.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FeatureGuard } from '../access/feature.guard';
@@ -36,6 +37,22 @@ export class WorkoutPlansController {
     @Query('clientId') clientId?: string,
   ) {
     return this.workoutPlansService.findAll(user, clientId);
+  }
+
+  @Get('templates')
+  @ApiOperation({ summary: 'Plantillas de rutina visibles (propias y globales del admin)' })
+  findTemplates(@CurrentUser() user: any) {
+    return this.workoutPlansService.findTemplates(user);
+  }
+
+  @Post(':id/copy')
+  @ApiOperation({ summary: 'Copiar un plan: duplicarlo, asignarlo a un cliente o guardarlo como plantilla' })
+  copy(
+    @Param('id') id: string,
+    @Body() dto: CopyWorkoutPlanDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.workoutPlansService.copy(id, dto, user);
   }
 
   @Get(':id')

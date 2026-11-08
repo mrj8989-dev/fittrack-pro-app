@@ -88,12 +88,18 @@ export class BodyRevisionsController {
   }
 
   @Put('interval')
-  @ApiOperation({ summary: 'Actualizar intervalo de revisiones' })
-  updateRevisionInterval(
+  @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Cada cuántos días toca revisión (propio, o de un cliente si eres su entrenador o admin)' })
+  @ApiQuery({ name: 'clientId', required: false })
+  async updateRevisionInterval(
     @Body() dto: UpdateRevisionIntervalDto,
     @CurrentUser() user: any,
+    @Query('clientId') clientId?: string,
   ) {
-    return this.bodyRevisionsService.updateRevisionInterval(user.id, dto);
+    return this.bodyRevisionsService.updateRevisionInterval(
+      await this.bodyRevisionsService.resolveTargetUserId(user, clientId),
+      dto,
+    );
   }
 
   @Delete(':id')

@@ -29,8 +29,9 @@ export class AddExerciseDto {
   @Min(1)
   restTime?: number;
 
-  @ApiProperty({ example: 1 })
+  @ApiPropertyOptional({ example: 1, description: 'Si se omite, se añade al final' })
+  @IsOptional()
   @IsInt()
   @Min(1)
-  order: number;
+  order?: number;
 }

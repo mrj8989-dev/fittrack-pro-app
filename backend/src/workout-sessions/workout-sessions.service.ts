@@ -29,10 +29,19 @@ export class WorkoutSessionsService {
   }
 
   async create(dto: CreateSessionDto, userId: string) {
+    const workout = await this.prisma.workout.findUnique({
+      where: { id: dto.workoutId },
+      include: { workoutPlan: { select: { userId: true, isTemplate: true } } },
+    });
+    if (!workout) throw new NotFoundException('Entrenamiento no encontrado');
+    if (workout.workoutPlan.userId !== userId || workout.workoutPlan.isTemplate) {
+      throw new ForbiddenException('Ese entrenamiento no es de tu plan');
+    }
     return this.prisma.workoutSession.create({
       data: {
         ...dto,
         userId,
+        workoutName: workout.name,
       },
       include: {
         workout: true,

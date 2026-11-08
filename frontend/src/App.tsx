@@ -15,6 +15,7 @@ import NutritionPage from './pages/NutritionPage'
 import AdminPage from './pages/AdminPage'
 import ForcePasswordChangePage from './pages/ForcePasswordChangePage'
 import PlansPage from './pages/PlansPage'
+import RoutinesPage from './pages/RoutinesPage'
 import AssistantPage from './pages/AssistantPage'
 import TrainerHomePage from './pages/TrainerHomePage'
 import { canAccess, featureForPath, homePathFor } from './lib/roleAccess'
@@ -81,6 +82,7 @@ export default function App() {
         <Route path="revisiones" element={<RoleRoute path="/revisiones"><RevisionsPage /></RoleRoute>} />
         <Route path="nutricion" element={<RoleRoute path="/nutricion"><NutritionPage /></RoleRoute>} />
         <Route path="entrenador" element={<RoleRoute path="/entrenador"><TrainerPage /></RoleRoute>} />
+        <Route path="rutinas" element={<RoleRoute path="/rutinas"><RoutinesPage /></RoleRoute>} />
         <Route path="ejercicios" element={<RoleRoute path="/ejercicios"><ExercisesPage /></RoleRoute>} />
         <Route path="chat" element={<RoleRoute path="/chat"><ChatPage /></RoleRoute>} />
         <Route path="admin" element={<RoleRoute path="/admin"><AdminPage /></RoleRoute>} />

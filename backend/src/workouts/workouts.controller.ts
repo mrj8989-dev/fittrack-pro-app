@@ -8,6 +8,7 @@ import { CreateWorkoutDto } from './dto/create-workout.dto';
 import { UpdateWorkoutDto } from './dto/update-workout.dto';
 import { AddExerciseDto } from './dto/add-exercise.dto';
 import { ReorderExercisesDto } from './dto/reorder-exercises.dto';
+import { UpdateWorkoutExerciseDto } from './dto/update-workout-exercise.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { FeatureGuard } from '../access/feature.guard';
@@ -76,6 +77,17 @@ export class WorkoutsController {
     @CurrentUser() user: any,
   ) {
     return this.workoutsService.reorderExercises(id, dto, user);
+  }
+
+  @Patch(':id/exercises/:exerciseId')
+  @ApiOperation({ summary: 'Cambiar series, repeticiones o descanso de un ejercicio del workout' })
+  updateExercise(
+    @Param('id') id: string,
+    @Param('exerciseId') exerciseId: string,
+    @Body() dto: UpdateWorkoutExerciseDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.workoutsService.updateExercise(id, exerciseId, dto, user);
   }
 
   @Delete(':id/exercises/:exerciseId')

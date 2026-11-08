@@ -48,9 +48,10 @@ export class UsersController {
     const clients = user.role === Role.ADMIN
       ? await this.usersService.findAllClients()
       : await this.usersService.findClientsByTrainer(user.id);
-    // Si se le pueden asignar menús (plan PREMIUM o excepción del admin).
+    // Qué se le puede asignar: rutinas (PRO o más) y menús (PREMIUM), salvo excepciones del admin.
     return Promise.all(clients.map(async c => ({
       ...c,
+      trainingEnabled: await this.access.entitled({ ...c, role: Role.CLIENT }, 'training'),
       nutritionEnabled: await this.access.entitled({ ...c, role: Role.CLIENT }, 'nutrition'),
     })));
   }

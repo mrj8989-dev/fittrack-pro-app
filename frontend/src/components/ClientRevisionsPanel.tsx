@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import api, { API_BASE_URL } from '../lib/api'
 import { chartTooltipStyle } from '../lib/chart'
@@ -23,7 +23,27 @@ interface Revision {
 const fmtDate = (iso: string, long = false) =>
   new Date(iso).toLocaleDateString('es-ES', long ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: '2-digit', month: 'short' })
 
-/** Revisiones corporales de un cliente, en modo lectura (para su entrenador o el admin). */
+/** Cada cuántos días le toca revisión al cliente: lo decide su entrenador (o el admin). */
+function IntervalSelect({ clientId, value }: { clientId: string; value: number }) {
+  const qc = useQueryClient()
+  const update = useMutation({
+    mutationFn: (revisionInterval: number) => api.put('/body-revisions/interval', { revisionInterval }, { params: { clientId } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['client-next-revision', clientId] })
+      qc.invalidateQueries({ queryKey: ['trainer-dashboard'] })
+    },
+  })
+  return (
+    <label className="interval-select">
+      cada
+      <select value={value} onChange={e => update.mutate(Number(e.target.value))} disabled={update.isPending} aria-label="Frecuencia de revisión">
+        {[7, 14, 21, 28].map(d => <option key={d} value={d}>{d} días</option>)}
+      </select>
+    </label>
+  )
+}
+
+/** Revisiones corporales de un cliente (para su entrenador o el admin): las ve y fija su frecuencia. */
 export default function ClientRevisionsPanel({ clientId }: { clientId: string }) {
   const [photo, setPhoto] = useState<string | null>(null)
   const { data: revisions = [], isLoading } = useQuery<Revision[]>({
@@ -40,8 +60,9 @@ export default function ClientRevisionsPanel({ clientId }: { clientId: string })
   if (revisions.length === 0) {
     return (
       <div className="card">
-        <EmptyState icon="ti-camera" title="Sin revisiones">
-          Este cliente todavía no ha registrado ninguna revisión corporal{next ? ` (le toca cada ${next.revisionInterval} días)` : ''}.
+        <EmptyState icon="ti-camera" title="Sin revisiones"
+          action={next && <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Revisión <IntervalSelect clientId={clientId} value={next.revisionInterval} /></span>}>
+          Este cliente todavía no ha registrado ninguna revisión corporal.
         </EmptyState>
       </div>
     )
@@ -67,7 +88,7 @@ export default function ClientRevisionsPanel({ clientId }: { clientId: string })
           icon="ti-calendar-event"
           label="Próxima revisión"
           value={!next ? '—' : next.daysUntilRevision <= 0 ? 'Pendiente' : `${next.daysUntilRevision} días`}
-          sub={next ? `cada ${next.revisionInterval} días` : undefined}
+          sub={next ? <IntervalSelect clientId={clientId} value={next.revisionInterval} /> : undefined}
           tone={next && next.daysUntilRevision <= 0 ? 'negative' : undefined}
         />
       </div>
