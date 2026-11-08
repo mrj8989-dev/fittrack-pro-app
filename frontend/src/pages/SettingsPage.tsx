@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { useUploadProfilePhoto } from '../hooks/useProfilePhoto'
 import Avatar from '../components/Avatar'
 import ChangePasswordForm from '../components/ChangePasswordForm'
+import AiSettingsForm from '../components/AiSettingsForm'
+import { useFeatureState } from '../hooks/useAccess'
 import { PageHeader } from '../components/ui'
 import { ROLE_LABEL, isRole } from '../lib/roleAccess'
 
@@ -28,6 +30,14 @@ function SettingSection({ title, icon, children }: { title: string; icon: string
 export default function SettingsPage() {
   const { mode, accent, toggleMode, setAccent } = useTheme()
   const { user, logout, updateUser } = useAuth()
+  const featureState = useFeatureState()
+  const isClient = user?.role === 'CLIENT'
+  const showAi = isClient && featureState('ai') === 'available'
+  const passwordSection = (
+    <SettingSection title="Contraseña" icon="ti-lock">
+      <ChangePasswordForm />
+    </SettingSection>
+  )
   const uploadPhoto = useUploadProfilePhoto()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -171,12 +181,20 @@ export default function SettingsPage() {
         </div>
       </SettingSection>
 
+      {/* Con el asistente la columna derecha es larga: la contraseña pasa a la izquierda. */}
+      {showAi && passwordSection}
       </div>
       <div>
-      {/* CONTRASEÑA */}
-      <SettingSection title="Contraseña" icon="ti-lock">
-        <ChangePasswordForm />
-      </SettingSection>
+      {/* ASISTENTE IA */}
+      {showAi && (
+        <div id="ia">
+          <SettingSection title="Asistente IA" icon="ti-sparkles">
+            <AiSettingsForm />
+          </SettingSection>
+        </div>
+      )}
+
+      {!showAi && passwordSection}
 
       {/* CUENTA */}
       <SettingSection title="Sesión" icon="ti-shield-lock">

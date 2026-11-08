@@ -15,5 +15,6 @@ import {
     MealPlansController,
   ],
   providers: [FoodsService, MealPlansService, NutritionProfileService],
+  exports: [NutritionProfileService],
 })
 export class NutritionModule {}

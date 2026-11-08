@@ -10,7 +10,7 @@ import type { Feature, Plan } from '../lib/planAccess'
 const COMPARED: Feature[] = ['exercises', 'dashboard', 'training', 'trainer', 'revisions', 'ai', 'nutrition']
 
 // Funcionalidades del plan que aún no están construidas: se anuncian como "próximamente".
-const COMING_SOON: Feature[] = ['ai']
+const COMING_SOON: Feature[] = []
 
 function featureText(feature: Feature, plan: Plan) {
   const soon = COMING_SOON.includes(feature) ? ' (próximamente)' : ''

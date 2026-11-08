@@ -25,6 +25,7 @@ const revisions: NavItem = { path: '/revisiones', label: 'Revisiones', icon: 'ti
 const nutrition: NavItem = { path: '/nutricion', label: 'Nutrición', icon: 'ti-salad', feature: 'nutrition' }
 const exercises: NavItem = { path: '/ejercicios', label: 'Ejercicios', icon: 'ti-list-search', feature: 'exercises' }
 const chat: NavItem = { path: '/chat', label: 'Chat', icon: 'ti-message-circle', feature: 'trainer' }
+const assistant: NavItem = { path: '/asistente', label: 'Asistente IA', icon: 'ti-sparkles', feature: 'ai' }
 const clients: NavItem = { path: '/entrenador', label: 'Clientes', icon: 'ti-users' }
 const admin: NavItem = { path: '/admin', label: 'Panel', icon: 'ti-shield-star' }
 
@@ -32,7 +33,7 @@ const admin: NavItem = { path: '/admin', label: 'Panel', icon: 'ti-shield-star' 
 // gestiona sus menús; el TRAINER, sus plantillas y los menús de sus clientes; el ADMIN, todo:
 // usuarios y roles (Panel), planes e historial de cualquier cliente (Clientes), menús y catálogos.
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
-  CLIENT: [dashboard, workout, progress, revisions, nutrition, exercises, chat],
+  CLIENT: [dashboard, workout, progress, revisions, nutrition, exercises, chat, assistant],
   TRAINER: [clients, nutrition, exercises],
   ADMIN: [admin, clients, nutrition, exercises],
 }

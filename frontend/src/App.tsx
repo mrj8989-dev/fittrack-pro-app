@@ -15,6 +15,7 @@ import NutritionPage from './pages/NutritionPage'
 import AdminPage from './pages/AdminPage'
 import ForcePasswordChangePage from './pages/ForcePasswordChangePage'
 import PlansPage from './pages/PlansPage'
+import AssistantPage from './pages/AssistantPage'
 import { canAccess, featureForPath, homePathFor } from './lib/roleAccess'
 import { useFeatureState } from './hooks/useAccess'
 import { EmptyState } from './components/ui'
@@ -77,6 +78,7 @@ export default function App() {
         <Route path="chat" element={<RoleRoute path="/chat"><ChatPage /></RoleRoute>} />
         <Route path="admin" element={<RoleRoute path="/admin"><AdminPage /></RoleRoute>} />
         <Route path="planes" element={<RoleRoute path="/planes"><PlansPage /></RoleRoute>} />
+        <Route path="asistente" element={<RoleRoute path="/asistente"><AssistantPage /></RoleRoute>} />
       </Route>
       <Route path="*" element={<Navigate to="/landing" replace />} />
     </Routes>
