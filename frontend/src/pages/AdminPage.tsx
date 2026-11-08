@@ -500,7 +500,7 @@ export default function AdminPage() {
       </section>
 
       {/* MÉTRICAS */}
-      <div className="grid-auto stats-grid" style={{ '--min': '180px', marginBottom: '14px' } as React.CSSProperties}>
+      <div className="stats-grid stats-6" style={{ marginBottom: '14px' }}>
         <StatCard icon="ti-users" label="Usuarios" value={stats.users.total} sub={`+${stats.users.new30d} en 30 días`} tone="positive" />
         <StatCard icon="ti-user-star" label="Entrenadores" value={stats.users.trainers} sub={`${(stats.users.clients / Math.max(stats.users.trainers, 1)).toFixed(1)} clientes / entrenador`} />
         <StatCard

@@ -155,6 +155,16 @@ export class WorkoutSessionsService {
       }
     }
 
-    return Object.values(records);
+    // Con el nombre y el grupo muscular, para que cada pantalla no tenga que cruzarlo con el catálogo.
+    const exercises = await this.prisma.exercise.findMany({
+      where: { id: { in: Object.keys(records) } },
+      select: { id: true, name: true, muscleGroup: true },
+    });
+    const byId = new Map(exercises.map((e) => [e.id, e]));
+    return Object.values(records).map((r) => ({
+      ...r,
+      exerciseName: byId.get(r.exerciseId)?.name ?? null,
+      muscleGroup: byId.get(r.exerciseId)?.muscleGroup ?? null,
+    }));
   }
 }

@@ -133,9 +133,10 @@ export default function TrainerPage() {
         )}
       />
 
-      <div className="split-layout">
+      {/* En móvil, con un cliente abierto se oculta la lista (se vuelve con "← Clientes"). */}
+      <div className={`split-layout${selectedClientId ? ' has-selection' : ''}`}>
         {/* CLIENTES */}
-        <div className="card">
+        <div className="card client-list-card">
           <h2 className="section-title">
             <i className="ti ti-users" aria-hidden="true" /> {isAdmin ? 'Clientes' : 'Mis clientes'}
             <span className="badge" style={{ marginLeft: 'auto' }}>{clients.length}</span>
@@ -209,8 +210,11 @@ export default function TrainerPage() {
             </div>
           ) : (
             <>
+              <button type="button" className="btn btn-ghost btn-sm mobile-only" onClick={() => setSelectedClientId(null)} style={{ marginBottom: '8px' }}>
+                <i className="ti ti-arrow-left" aria-hidden="true" /> Clientes
+              </button>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                   <Avatar name={selectedClient?.name} photoUrl={selectedClient?.profilePhoto} size={40} />
                   <div>
                     <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>{selectedClient?.name}</div>
@@ -223,12 +227,13 @@ export default function TrainerPage() {
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
+                      title={TAB_INFO[tab].label}
                       role="tab"
                       aria-selected={activeTab === tab}
                       className={`tab${activeTab === tab ? ' active' : ''}`}
                     >
                       <i className={`ti ${TAB_INFO[tab].icon}`} aria-hidden="true" />
-                      {TAB_INFO[tab].label}
+                      <span className="tab-label">{TAB_INFO[tab].label}</span>
                     </button>
                   ))}
                 </div>

@@ -109,7 +109,7 @@ function ExerciseRow({ item, index, workoutId, editable }: { item: PlanExercise;
         </span>
       )}
       <span className="plan-ex-index">{index + 1}</span>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="plan-ex-info">
         <div className="plan-ex-name">{item.exercise.name}</div>
         <div className="plan-ex-muscle">{item.exercise.muscleGroup}</div>
       </div>

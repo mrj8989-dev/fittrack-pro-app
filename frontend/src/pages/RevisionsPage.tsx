@@ -284,15 +284,16 @@ export default function RevisionsPage() {
                 <i className={`ti ${stat.icon}`} style={{ color: 'var(--text-tertiary)', fontSize: '16px' }} aria-hidden="true" />
               </div>
               <div className="stat-value" style={{ fontSize: '22px' }}>{stat.value}</div>
-              {stat.delta && <div className={`stat-sub ${Number(weightChange) >= 0 ? 'positive' : 'negative'}`}>{stat.delta}</div>}
+              {stat.delta && <div className="stat-sub">{stat.delta}</div>}
             </div>
           ))}
         </div>
       )}
 
+      <div className={`revisions-body${weightProgress.length > 1 ? ' has-chart' : ''}`}>
       {/* GRÁFICA EVOLUCIÓN */}
       {weightProgress.length > 1 && (
-        <div className="card" style={{ marginBottom: '1.75rem' }}>
+        <div className="card revisions-chart">
           <h2 className="section-title"><i className="ti ti-trending-down" aria-hidden="true" /> Evolución del peso</h2>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData}>
@@ -304,7 +305,7 @@ export default function RevisionsPage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="fecha" tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} domain={['dataMin - 1', 'dataMax + 1']} width={36} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} domain={[(min: number) => Math.floor(min - 1), (max: number) => Math.ceil(max + 1)]} allowDecimals={false} width={36} />
               <Tooltip contentStyle={chartTooltipStyle} formatter={(v: any) => [`${v} kg`, 'Peso']} />
               <Area type="monotone" dataKey="peso" stroke="var(--accent-primary)" strokeWidth={2.5} fill="url(#revWeightGrad)" />
             </AreaChart>
@@ -325,7 +326,7 @@ export default function RevisionsPage() {
             </EmptyState>
           </div>
         ) : (
-          <div className="grid-auto" style={{ '--min': '420px', alignItems: 'start' } as React.CSSProperties}>
+          <div className="grid-auto revisions-history-list" style={{ '--min': '420px', alignItems: 'start' } as React.CSSProperties}>
             {revisions.map((revision: any, index: number) => {
               const prev = revisions[index + 1]
               const weightDiff = prev ? (revision.weight - prev.weight).toFixed(1) : null
@@ -339,7 +340,7 @@ export default function RevisionsPage() {
                       </div>
                       {index === 0 && <span className="badge badge-solid">Última</span>}
                       {weightDiff && (
-                        <span className={`badge ${Number(weightDiff) >= 0 ? 'badge-accent' : 'badge-danger'}`}>
+                        <span className="badge">
                           <i className={`ti ${Number(weightDiff) >= 0 ? 'ti-arrow-up-right' : 'ti-arrow-down-right'}`} aria-hidden="true" />
                           {Number(weightDiff) >= 0 ? '+' : ''}{weightDiff} kg
                         </span>
@@ -397,8 +398,8 @@ export default function RevisionsPage() {
                           key={photo.label}
                           type="button"
                           onClick={() => setSelectedPhoto(`${API_BASE_URL}${photo.url}`)}
+                          className="revision-photo"
                           style={{
-                            width: '84px', height: '84px',
                             padding: 0,
                             borderRadius: '12px',
                             overflow: 'hidden',
@@ -426,6 +427,7 @@ export default function RevisionsPage() {
           </div>
         )}
       </section>
+      </div>
 
       {/* LIGHTBOX FOTOS */}
       {selectedPhoto && (

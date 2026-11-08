@@ -26,19 +26,23 @@ export default function DashboardPage() {
 
   // Calcular volumen semanal de las últimas 8 semanas
   const weeklyVolume = () => {
-    const weeks: Record<string, number> = {}
+    // Clave = lunes de la semana (timestamp), para poder ordenar: las sesiones llegan de la más reciente a la más antigua.
+    const weeks = new Map<number, number>()
     sessions.forEach((session: any) => {
-      const date = new Date(session.date)
-      const weekStart = new Date(date)
-      weekStart.setDate(date.getDate() - date.getDay())
-      const key = weekStart.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+      const weekStart = new Date(session.date)
+      weekStart.setHours(0, 0, 0, 0)
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7))
       const volume = session.sets?.reduce((acc: number, set: any) =>
         acc + (set.weight || 0) * (set.reps || 0), 0) || 0
-      weeks[key] = (weeks[key] || 0) + volume
+      weeks.set(weekStart.getTime(), (weeks.get(weekStart.getTime()) || 0) + volume)
     })
-    return Object.entries(weeks)
+    return [...weeks.entries()]
+      .sort(([a], [b]) => a - b)
       .slice(-8)
-      .map(([week, volume]) => ({ week, volume: Math.round(volume) }))
+      .map(([start, volume]) => ({
+        week: new Date(start).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+        volume: Math.round(volume),
+      }))
   }
 
   // Sesiones este mes
@@ -175,7 +179,7 @@ export default function DashboardPage() {
                   <div key={record.exerciseId}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', gap: '8px' }}>
                       <span style={{ color: 'var(--text-secondary)' }}>{record.exerciseName || 'Ejercicio'}</span>
-                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
                         {record.maxWeight} kg × {record.reps}
                       </span>
                     </div>

@@ -55,7 +55,7 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow={<><i className="ti ti-settings" aria-hidden="true" /> Ajustes</>}
         title="Tu cuenta"
-        subtitle="Perfil, apariencia, contraseña y sesión"
+        subtitle="Perfil, apariencia y contraseña"
       />
 
       <div className="settings-grid">
@@ -97,6 +97,9 @@ export default function SettingsPage() {
             <div className="field-error">No se ha podido subir la foto</div>
           )}
         </div>
+        <button onClick={logout} className="btn btn-danger btn-sm" style={{ alignSelf: 'flex-start' }}>
+          <i className="ti ti-logout" aria-hidden="true" /> Cerrar sesión
+        </button>
       </section>
 
       {/* APARIENCIA */}
@@ -171,14 +174,6 @@ export default function SettingsPage() {
           })}
         </div>
 
-        <div className="inset" style={{ marginTop: '1.5rem', padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button className="btn btn-primary btn-sm">Botón primario</button>
-            <button className="btn btn-secondary btn-sm">Secundario</button>
-            <span className="badge badge-accent">Etiqueta</span>
-          </div>
-          <div className="progress"><div style={{ width: '65%' }} /></div>
-        </div>
       </SettingSection>
 
       {/* Con el asistente la columna derecha es larga: la contraseña pasa a la izquierda. */}
@@ -196,12 +191,6 @@ export default function SettingsPage() {
 
       {!showAi && passwordSection}
 
-      {/* CUENTA */}
-      <SettingSection title="Sesión" icon="ti-shield-lock">
-        <button onClick={logout} className="btn btn-danger">
-          <i className="ti ti-logout" aria-hidden="true" /> Cerrar sesión
-        </button>
-      </SettingSection>
       </div>
       </div>
     </div>

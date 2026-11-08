@@ -369,6 +369,8 @@ export default function WorkoutPage() {
                       value={set.weight}
                       onChange={e => handleSetChange(we.exerciseId, idx, 'weight', e.target.value)}
                       disabled={set.completed}
+                      // Al tocar el campo se selecciona el valor propuesto: escribir lo sustituye en vez de añadirse detrás.
+                      onFocus={e => e.target.select()}
                       placeholder="0"
                       style={setInputStyle(set.completed)}
                     />
@@ -378,6 +380,8 @@ export default function WorkoutPage() {
                       value={set.reps}
                       onChange={e => handleSetChange(we.exerciseId, idx, 'reps', e.target.value)}
                       disabled={set.completed}
+                      // Al tocar el campo se selecciona el valor propuesto: escribir lo sustituye en vez de añadirse detrás.
+                      onFocus={e => e.target.select()}
                       placeholder="0"
                       style={setInputStyle(set.completed)}
                     />
