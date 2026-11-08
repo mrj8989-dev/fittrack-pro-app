@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBodyRevisionDto } from './dto/create-body-revision.dto';
 import { UpdateRevisionIntervalDto } from './dto/update-revision-interval.dto';
@@ -37,6 +38,23 @@ export class BodyRevisionsService {
         photoSide,
       },
     });
+  }
+
+  /**
+   * De quién se consultan las revisiones: las propias, las de un cliente si eres su entrenador,
+   * o las de cualquiera si eres admin. Solo lectura: crear y borrar sigue siendo del cliente.
+   */
+  async resolveTargetUserId(user: { id: string; role: Role }, clientId?: string) {
+    if (!clientId || clientId === user.id) return user.id;
+    if (user.role === Role.ADMIN) return clientId;
+    if (user.role !== Role.TRAINER) {
+      throw new ForbiddenException('Solo un entrenador puede ver las revisiones de otro usuario');
+    }
+    const client = await this.prisma.user.findUnique({ where: { id: clientId } });
+    if (!client || client.trainerId !== user.id) {
+      throw new ForbiddenException('Ese usuario no está en tu cartera de clientes');
+    }
+    return clientId;
   }
 
   async findAll(userId: string) {

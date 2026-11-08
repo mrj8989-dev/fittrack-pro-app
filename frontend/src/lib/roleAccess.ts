@@ -28,13 +28,15 @@ const chat: NavItem = { path: '/chat', label: 'Chat', icon: 'ti-message-circle',
 const assistant: NavItem = { path: '/asistente', label: 'Asistente IA', icon: 'ti-sparkles', feature: 'ai' }
 const clients: NavItem = { path: '/entrenador', label: 'Clientes', icon: 'ti-users' }
 const admin: NavItem = { path: '/admin', label: 'Panel', icon: 'ti-shield-star' }
+// Inicio del entrenador: misma ruta que el dashboard del cliente, otra página (ver App).
+const trainerHome: NavItem = { path: '/', label: 'Inicio', icon: 'ti-layout-dashboard' }
 
 // Entrenar, Progreso y Revisiones son datos personales del CLIENT. En Nutrición, el CLIENT
 // gestiona sus menús; el TRAINER, sus plantillas y los menús de sus clientes; el ADMIN, todo:
 // usuarios y roles (Panel), planes e historial de cualquier cliente (Clientes), menús y catálogos.
 export const NAV_BY_ROLE: Record<Role, NavItem[]> = {
   CLIENT: [dashboard, workout, progress, revisions, nutrition, exercises, chat, assistant],
-  TRAINER: [clients, nutrition, exercises],
+  TRAINER: [trainerHome, clients, nutrition, exercises],
   ADMIN: [admin, clients, nutrition, exercises],
 }
 

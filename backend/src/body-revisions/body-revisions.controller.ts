@@ -1,8 +1,8 @@
 import {
   Controller, Get, Post, Delete, Put,
-  Body, Param, UseGuards, UseInterceptors, UploadedFiles
+  Body, Param, Query, UseGuards, UseInterceptors, UploadedFiles
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -55,21 +55,27 @@ export class BodyRevisionsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener historial de revisiones' })
-  findAll(@CurrentUser() user: any) {
-    return this.bodyRevisionsService.findAll(user.id);
+  @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Historial de revisiones (propio, o de un cliente si eres su entrenador o admin)' })
+  @ApiQuery({ name: 'clientId', required: false })
+  async findAll(@CurrentUser() user: any, @Query('clientId') clientId?: string) {
+    return this.bodyRevisionsService.findAll(await this.bodyRevisionsService.resolveTargetUserId(user, clientId));
   }
 
   @Get('progress')
-  @ApiOperation({ summary: 'Obtener progreso de peso y medidas' })
-  getWeightProgress(@CurrentUser() user: any) {
-    return this.bodyRevisionsService.getWeightProgress(user.id);
+  @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Progreso de peso y medidas (propio o de un cliente)' })
+  @ApiQuery({ name: 'clientId', required: false })
+  async getWeightProgress(@CurrentUser() user: any, @Query('clientId') clientId?: string) {
+    return this.bodyRevisionsService.getWeightProgress(await this.bodyRevisionsService.resolveTargetUserId(user, clientId));
   }
 
   @Get('next-revision')
-  @ApiOperation({ summary: 'Obtener fecha de próxima revisión' })
-  getNextRevisionDate(@CurrentUser() user: any) {
-    return this.bodyRevisionsService.getNextRevisionDate(user.id);
+  @Roles(Role.CLIENT, Role.TRAINER, Role.ADMIN)
+  @ApiOperation({ summary: 'Fecha de la próxima revisión (propia o de un cliente)' })
+  @ApiQuery({ name: 'clientId', required: false })
+  async getNextRevisionDate(@CurrentUser() user: any, @Query('clientId') clientId?: string) {
+    return this.bodyRevisionsService.getNextRevisionDate(await this.bodyRevisionsService.resolveTargetUserId(user, clientId));
   }
 
   @Get(':id')

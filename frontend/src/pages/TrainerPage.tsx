@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useClients, useRemoveClient } from '../hooks/useTrainerClients'
 import AddClientModal from '../components/AddClientModal'
@@ -10,6 +10,7 @@ import {
 import { useExercises } from '../hooks/useExercises'
 import { useClientSessions, useClientRecords } from '../hooks/useTrainerSessions'
 import ChatThread from '../components/ChatThread'
+import ClientRevisionsPanel from '../components/ClientRevisionsPanel'
 import Avatar from '../components/Avatar'
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -23,6 +24,15 @@ import { inputStyle, primaryButtonStyle, secondaryButtonStyle } from '../lib/sty
 import { EmptyState, Loader, PageHeader } from '../components/ui'
 
 const DAY_SHORT = ['', 'L', 'M', 'X', 'J', 'V', 'S', 'D']
+
+type ClientTab = 'plan' | 'historial' | 'revisiones' | 'chat'
+const TAB_INFO: Record<ClientTab, { label: string; icon: string }> = {
+  plan: { label: 'Plan de entrenamiento', icon: 'ti-barbell' },
+  historial: { label: 'Historial y récords', icon: 'ti-history' },
+  revisiones: { label: 'Revisiones', icon: 'ti-camera' },
+  chat: { label: 'Chat', icon: 'ti-message-circle' },
+}
+const isClientTab = (t: string | null): t is ClientTab => !!t && t in TAB_INFO
 
 function groupByMuscle<T extends { muscleGroup: string }>(items: T[]): Record<string, T[]> {
   const groups: Record<string, T[]> = {}
@@ -337,8 +347,13 @@ function ClientHistoryPanel({ clientId }: { clientId: string }) {
 
 export default function TrainerPage() {
   const { user } = useAuth()
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'plan' | 'historial' | 'chat'>('plan')
+  // Se puede llegar con un cliente y una pestaña ya elegidos (?cliente=…&tab=…), p. ej. desde el inicio.
+  const [searchParams] = useSearchParams()
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(searchParams.get('cliente'))
+  const [activeTab, setActiveTab] = useState<ClientTab>(() => {
+    const t = searchParams.get('tab')
+    return isClientTab(t) ? t : 'plan'
+  })
   const [showAddClient, setShowAddClient] = useState(false)
   const [planName, setPlanName] = useState('')
   const [showPlanForm, setShowPlanForm] = useState(false)
@@ -365,7 +380,7 @@ export default function TrainerPage() {
   const visibleClients = filter
     ? clients.filter((c: any) => c.name.toLowerCase().includes(filter) || c.email.toLowerCase().includes(filter))
     : clients
-  const tabs = isAdmin ? (['plan', 'historial'] as const) : (['plan', 'historial', 'chat'] as const)
+  const tabs: ClientTab[] = isAdmin ? ['plan', 'historial', 'revisiones'] : ['plan', 'historial', 'revisiones', 'chat']
 
   function handleCreatePlan(e: React.FormEvent) {
     e.preventDefault()
@@ -482,8 +497,8 @@ export default function TrainerPage() {
                       aria-selected={activeTab === tab}
                       className={`tab${activeTab === tab ? ' active' : ''}`}
                     >
-                      <i className={`ti ${tab === 'plan' ? 'ti-barbell' : tab === 'historial' ? 'ti-history' : 'ti-message-circle'}`} aria-hidden="true" />
-                      {tab === 'plan' ? 'Plan de entrenamiento' : tab === 'historial' ? 'Historial y récords' : 'Chat'}
+                      <i className={`ti ${TAB_INFO[tab].icon}`} aria-hidden="true" />
+                      {TAB_INFO[tab].label}
                     </button>
                   ))}
                 </div>
@@ -526,6 +541,8 @@ export default function TrainerPage() {
                 </>
               ) : activeTab === 'historial' ? (
                 <ClientHistoryPanel clientId={selectedClientId} />
+              ) : activeTab === 'revisiones' ? (
+                <ClientRevisionsPanel key={selectedClientId} clientId={selectedClientId} />
               ) : (
                 <ChatThread otherUserId={selectedClientId} otherUserName={selectedClient?.name} otherUserPhoto={selectedClient?.profilePhoto} />
               )}

@@ -13,6 +13,7 @@ import { Role } from '@prisma/client';
 import { FeatureGuard } from '../access/feature.guard';
 import { RequiresFeature } from '../access/requires-feature.decorator';
 import { AccessService } from '../access/access.service';
+import { TrainerDashboardService } from './trainer-dashboard.service';
 
 const photoStorage = diskStorage({
   destination: './public/uploads',
@@ -31,7 +32,14 @@ export class UsersController {
   constructor(
     private usersService: UsersService,
     private access: AccessService,
+    private dashboard: TrainerDashboardService,
   ) {}
+
+  @Get('trainer-dashboard')
+  @ApiOperation({ summary: 'Resumen de la cartera del entrenador: actividad, revisiones pendientes, mensajes y avisos' })
+  getTrainerDashboard(@CurrentUser() user: any) {
+    return this.dashboard.get(user.id);
+  }
 
   @Get('clients')
   @Roles(Role.TRAINER, Role.ADMIN)
