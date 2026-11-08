@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import App from './App'
+// Iconos servidos desde el propio proyecto (versión fija): antes venían de un CDN con @latest.
+import '@tabler/icons-webfont/tabler-icons.min.css'
 import './index.css'
 
 const queryClient = new QueryClient({
