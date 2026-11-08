@@ -7,6 +7,12 @@ interface User {
   name: string
   role: string
   profilePhoto?: string | null
+  mustChangePassword?: boolean
+}
+
+export interface AuthSession {
+  access_token: string
+  user: User
 }
 
 interface AuthContextType {
@@ -15,6 +21,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   updateUser: (patch: Partial<User>) => void
+  /** Sustituye token y usuario (p. ej. tras cambiar la contraseña). */
+  applySession: (session: AuthSession) => void
   isLoading: boolean
 }
 
@@ -37,12 +45,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false)
   }, [])
 
+  const applySession = (session: AuthSession) => {
+    setToken(session.access_token)
+    setUser(session.user)
+    localStorage.setItem('ft-token', session.access_token)
+    localStorage.setItem('ft-user', JSON.stringify(session.user))
+  }
+
   const login = async (email: string, password: string) => {
-    const { data } = await api.post('/auth/login', { email, password })
-    setToken(data.access_token)
-    setUser(data.user)
-    localStorage.setItem('ft-token', data.access_token)
-    localStorage.setItem('ft-user', JSON.stringify(data.user))
+    const { data } = await api.post<AuthSession>('/auth/login', { email, password })
+    applySession(data)
   }
 
   const logout = () => {
@@ -63,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, updateUser, applySession, isLoading }}>
       {children}
     </AuthContext.Provider>
   )

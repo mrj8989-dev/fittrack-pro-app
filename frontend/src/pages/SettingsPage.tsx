@@ -4,6 +4,7 @@ import type { AccentColor } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { useUploadProfilePhoto } from '../hooks/useProfilePhoto'
 import Avatar from '../components/Avatar'
+import ChangePasswordForm from '../components/ChangePasswordForm'
 import { PageHeader } from '../components/ui'
 import { ROLE_LABEL, isRole } from '../lib/roleAccess'
 
@@ -40,13 +41,15 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="page" style={{ maxWidth: '680px' }}>
+    <div className="page" style={{ maxWidth: '1100px' }}>
       <PageHeader
         eyebrow={<><i className="ti ti-settings" aria-hidden="true" /> Ajustes</>}
         title="Tu cuenta"
-        subtitle="Perfil, apariencia y sesión"
+        subtitle="Perfil, apariencia, contraseña y sesión"
       />
 
+      <div className="settings-grid">
+      <div>
       {/* PERFIL */}
       <section className="card card-accent" style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <button
@@ -168,12 +171,21 @@ export default function SettingsPage() {
         </div>
       </SettingSection>
 
+      </div>
+      <div>
+      {/* CONTRASEÑA */}
+      <SettingSection title="Contraseña" icon="ti-lock">
+        <ChangePasswordForm />
+      </SettingSection>
+
       {/* CUENTA */}
       <SettingSection title="Sesión" icon="ti-shield-lock">
         <button onClick={logout} className="btn btn-danger">
           <i className="ti ti-logout" aria-hidden="true" /> Cerrar sesión
         </button>
       </SettingSection>
+      </div>
+      </div>
     </div>
   )
 }

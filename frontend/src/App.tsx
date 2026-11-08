@@ -13,6 +13,7 @@ import ExercisesPage from './pages/ExercisesPage'
 import ChatPage from './pages/ChatPage'
 import NutritionPage from './pages/NutritionPage'
 import AdminPage from './pages/AdminPage'
+import ForcePasswordChangePage from './pages/ForcePasswordChangePage'
 import { canAccess, homePathFor } from './lib/roleAccess'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -22,7 +23,10 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
       <div style={{ color: 'var(--accent-primary)', fontSize: '14px' }}>Cargando...</div>
     </div>
   )
-  return user ? <>{children}</> : <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/login" replace />
+  // Contraseña provisional (puesta por un admin o entrenador): hay que cambiarla antes de seguir.
+  if (user.mustChangePassword) return <ForcePasswordChangePage />
+  return <>{children}</>
 }
 
 // Si el rol no tiene acceso a la ruta, lo manda a su página de inicio.

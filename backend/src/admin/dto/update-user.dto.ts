@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsInt,
@@ -56,4 +57,19 @@ export class AdminUpdateUserDto {
   @Min(7)
   @Max(28)
   revisionInterval?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'false desactiva la cuenta: no puede iniciar sesión pero conserva sus datos',
+  })
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Pedir un cambio de contraseña en el siguiente acceso',
+  })
+  @IsOptional()
+  @IsBoolean()
+  mustChangePassword?: boolean;
 }
