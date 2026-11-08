@@ -1165,3 +1165,27 @@ textarea.input { height: auto; padding: 10px 12px; resize: vertical; }
 .ai-typing span:nth-child(3) { animation-delay: 0.3s; }
 @keyframes ai-dot { 0%, 80%, 100% { opacity: 0.3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
 .ai-shares { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 14px; }
+
+/* Nutrición: filas de alimento compactas (una línea) e intercambio en desplegable */
+.meal-item { border-top: 1px solid var(--border); padding: 6px 0; }
+.meal-item-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.meal-item-name { font-size: 13px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meal-item-meta { font-size: 11px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meal-item-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.grams-input {
+  width: 58px; height: 30px; padding: 0 6px; text-align: right;
+  background: var(--bg-primary); border: 1px solid var(--border-strong); border-radius: 8px;
+  color: var(--text-primary); font-size: 13px; font-variant-numeric: tabular-nums;
+}
+.grams-unit { font-size: 11px; color: var(--text-tertiary); margin: 0 2px 0 1px; }
+.swap-select { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+
+/* Lista de la compra */
+.shopping-group { margin-top: 12px; }
+.shopping-group h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 4px; }
+.shopping-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 7px 4px; border-bottom: 1px solid var(--border); cursor: pointer; }
+.shopping-item input { width: 16px; height: 16px; accent-color: var(--accent-primary); }
+.shopping-item.done .shopping-name { text-decoration: line-through; color: var(--text-tertiary); }
+.shopping-name { font-size: 14px; color: var(--text-primary); }
+.shopping-qty { font-size: 13px; font-weight: 600; color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums; }
+.shopping-qty small { display: block; font-weight: 400; font-size: 11px; color: var(--text-tertiary); }

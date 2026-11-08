@@ -90,6 +90,62 @@ function AssignPanel({ plan }: { plan: MealPlan }) {
   )
 }
 
+/** Desde la ficha de un cliente: elegir una plantilla y asignársela (camino inverso a AssignPanel). */
+function AssignToClientPanel({ client, templates, onAssigned }: {
+  client: { id: string; name: string; nutritionEnabled: boolean }
+  templates: MealPlanSummary[]
+  onAssigned: (plan: MealPlan) => void
+}) {
+  const [templateId, setTemplateId] = useState('')
+  const [kcalDraft, setKcal] = useState<string | null>(null)
+  const { data: clientProfile } = useNutritionProfile(client.id)
+  const assign = useAssignMealPlan()
+  const kcal = kcalDraft ?? (clientProfile?.targets ? String(clientProfile.targets.kcal) : '')
+
+  if (!client.nutritionEnabled) {
+    return (
+      <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+        <i className="ti ti-lock" aria-hidden="true" /> {client.name} no tiene nutrición: hace falta el plan PREMIUM o que el admin se la active.
+      </span>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={e => {
+        e.preventDefault()
+        assign.mutate(
+          { planId: templateId, clientId: client.id, targetKcal: kcal ? Number(kcal) : undefined },
+          { onSuccess: plan => { setTemplateId(''); onAssigned(plan) } },
+        )
+      }}
+      style={{ display: 'flex', flex: '1 1 520px', gap: '8px', alignItems: 'center', flexWrap: 'wrap', paddingLeft: '12px', borderLeft: '1px solid var(--border)' }}
+    >
+      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+        <i className="ti ti-send" style={{ color: 'var(--accent-primary)', marginRight: '6px' }} aria-hidden="true" />Asignar
+      </span>
+      <select value={templateId} onChange={e => setTemplateId(e.target.value)} required aria-label="Plantilla"
+        style={{ ...inputStyle, flex: '1 1 200px' }}>
+        <option value="">Elige una plantilla…</option>
+        {templates.map(t => <option key={t.id} value={t.id}>{t.name} · {t.dailyAverage.kcal} kcal/día</option>)}
+      </select>
+      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>ajustado a</span>
+      <input type="number" min={1000} max={6000} step={50} value={kcal} onChange={e => setKcal(e.target.value)}
+        placeholder="sin ajustar" aria-label="Calorías" style={{ ...inputStyle, width: '110px' }} />
+      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>kcal</span>
+      <button type="submit" disabled={assign.isPending || !templateId} style={primaryButtonStyle}>
+        {assign.isPending ? 'Asignando…' : 'Asignar'}
+      </button>
+      {!clientProfile?.targets && (
+        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', flexBasis: '100%' }}>
+          Este cliente aún no ha calculado sus objetivos: el menú se asignará con las cantidades de la plantilla.
+        </span>
+      )}
+      {assign.isError && <span style={{ fontSize: '12px', color: 'var(--danger)', flexBasis: '100%' }}>{apiErrorMessage(assign.error, 'No se pudo asignar.')}</span>}
+    </form>
+  )
+}
+
 function NewTemplateForm({ onCreated, onCancel }: { onCreated: (plan: MealPlan) => void; onCancel: () => void }) {
   const [name, setName] = useState('')
   const create = useCreateMealPlan()
@@ -119,9 +175,12 @@ export default function CoachNutrition({ isTrainer }: { isTrainer: boolean }) {
   const { data: clients = [] } = useClients()
   const { data: clientPlans = [] } = useClientMealPlans(clientId, !!clientId)
   const { data: clientProfile } = useNutritionProfile(clientId, !!clientId)
-  const { data: plan } = useMealPlan(selectedId ?? undefined)
+  // En los menús de un cliente, si no se ha elegido ninguno se abre el más reciente.
+  const openId = selectedId ?? (tab === 'clients' ? clientPlans[0]?.id ?? null : null)
+  const { data: plan } = useMealPlan(openId ?? undefined)
 
   const list = tab === 'templates' ? templates : tab === 'clients' ? clientPlans : []
+  const selectedClient = clients.find(c => c.id === clientId)
   const showEditor = plan && list.some(p => p.id === plan.id)
 
   const openCopy = (copy: MealPlan) => {
@@ -151,17 +210,22 @@ export default function CoachNutrition({ isTrainer }: { isTrainer: boolean }) {
       {tab === 'foods' && <FoodCatalog />}
 
       {tab === 'clients' && (
-        <select value={clientId} onChange={e => { setClientId(e.target.value); setSelectedId(null) }}
-          aria-label="Cliente" style={{ ...inputStyle, alignSelf: 'flex-start' }}>
-          <option value="">Elige un cliente…</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <div style={{ ...cardStyle, padding: '0.75rem 1rem', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <select value={clientId} onChange={e => { setClientId(e.target.value); setSelectedId(null) }}
+            aria-label="Cliente" style={{ ...inputStyle, flex: '0 1 240px' }}>
+            <option value="">Elige un cliente…</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {selectedClient && (
+            <AssignToClientPanel client={selectedClient} templates={templates} onAssigned={p => setSelectedId(p.id)} />
+          )}
+        </div>
       )}
 
       {(tab === 'templates' || clientId) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
           {list.map(p => (
-            <PlanCard key={p.id} plan={p} selected={p.id === selectedId} onClick={() => { setSelectedId(p.id); setCreating(false) }} />
+            <PlanCard key={p.id} plan={p} selected={p.id === openId} onClick={() => { setSelectedId(p.id); setCreating(false) }} />
           ))}
           {tab === 'templates' && !creating && (
             <button onClick={() => { setCreating(true); setSelectedId(null) }}
@@ -172,7 +236,7 @@ export default function CoachNutrition({ isTrainer }: { isTrainer: boolean }) {
           )}
           {tab === 'clients' && list.length === 0 && (
             <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-              Este cliente aún no tiene menús. Asígnale uno desde «Plantillas».
+              Este cliente aún no tiene menús. Asígnale uno con el panel de arriba.
             </div>
           )}
         </div>
